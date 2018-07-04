@@ -17,11 +17,10 @@ module.exports = {
         var transformStream = new Transform({objectMode: true});
 
         transformStream._transform = function(file, encoding, callback) {
-
             //process.stdout.clearLine();  // clear current text
             //process.stdout.cursorTo(0);  // move cursor to beginning of line
             //process.stdout.write("Изображений: " + imagesCount.all + ", требуют оптимизации: "+ imagesCount.processed);  // write text
-            console.log("Изображений: " + imagesCount.all + ", требуют оптимизации: "+ imagesCount.processed);
+            //console.log("Изображений: " + imagesCount.all + ", требуют оптимизации: "+ imagesCount.processed);
 
             if (file.isStream()) {
                 this.emit('error', new PluginError(PLUGIN_NAME, 'Streams are not supported!'));
@@ -88,16 +87,15 @@ module.exports = {
         var result = [];
 
         importOptions.path.forEach(function (element) {
-            if (!id.match(/(.scss)/g)) {
+            id = id.replace(/(\.\.\/){1,}/,'');
 
+            if (!id.match(/(.scss)/g)) {
                 var isDir = false;
                 try {
                     var stat = fs.lstatSync(element + '/' + id);
                     isDir = stat.isDirectory();
                 }
-                catch (ex) {
-                    //callback(ex);
-                }
+                catch (ex) {}
 
                 if(isDir)
                 {

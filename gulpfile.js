@@ -1,136 +1,116 @@
-const gulp = require('gulp'),
+var gulp = require('gulp'),
     argv = require('yargs').argv,
     path = require('path'),
-    plumber = require('gulp-plumber'),  // перехват ошибок
-    include = require('gulp-include'),  // инклуд файлов
-    concat = require('gulp-concat'),    // объеденение файлов
+    plumber = require('gulp-plumber'),
+    include = require('gulp-include'),
+    concat = require('gulp-concat'),
     sass = require('gulp-sass'),
-    autoprefixer = require('autoprefixer'),    // вендорные префиксы
+    autoprefixer = require('autoprefixer'),
     sourcemaps = require('gulp-sourcemaps'),
     gulpif = require('gulp-if'),
-    cssUrls = require('gulp-css-urls'),
-    gulpcssnano = require('gulp-cssnano'),
     cssnano = require('cssnano'),
-    clean = require('gulp-clean'),
     del = require('del'),
     fs = require('fs'),
     md5 = require('md5'),
     watch = require('gulp-watch'),
-    changed = require('gulp-changed'),
     newer = require('gulp-newer'),
     spritesmith = require('gulp.spritesmith'),
     babel = require('gulp-babel'),
     uglify = require('gulp-uglify-es').default,
     color = require('gulp-color'),
-    cache = require('gulp-cache'),
-    cached = require('gulp-cached'),
-    precss = require('precss'),
     buffer = require('vinyl-buffer'),
     imagemin = require('gulp-imagemin'),
     merge = require('merge-stream'),
-    postcssPartialImport = require('postcss-partial-import'),
     postcssImport = require('postcss-partial-import'),
     rename = require('gulp-rename'),
-    postcssComment = require('postcss-comment'),
     gm = require('gulp-gm'),
-    //scss = require('gulp-scss'),
-    gulpsync = require('gulp-sync')(gulp);
-var crypto = require('crypto');
-var util = require('util');
-var doiuse = require('doiuse');
-//var scss = require('gulp-scss');
-var hashsum = require("gulp-hashsum");
-var hash = require('gulp-css-assets-hash');
-var postcss = require('gulp-postcss');
-var url = require("postcss-url");
-//var scss = require('postcss-scss');
-var postcssnested = require('postcss-nested');
-var stripInlineComments = require('postcss-strip-inline-comments');
-var parserComment = require('postcss-comment');
-var mixins = require('postcss-sassy-mixins');
-var smartImport = require("postcss-smart-import");
+    gulpsync = require('gulp-sync')(gulp),
+    doiuse = require('doiuse'),
+    postcss = require('gulp-postcss'),
+    folders = require('gulp-folders');
 
-var folders = require('gulp-folders');
-
-var conf = require('./.gulp/gulpconf.js');
-var func = require('./.gulp/modules/func.js');
+var conf = require('./.gulp/gulpconf.js'),
+    func = require('./.gulp/modules/func.js');
 conf['data'] = JSON.parse(fs.readFileSync('.gulp/cache/gulp.json', 'utf8'));
 
-var dev = (argv.dev === undefined) ? false : true;
-var isSourceMap = ((dev == false && conf.sourceMap.createSourceMapProd) || (dev == true && conf.sourceMap.createSourceMapDev)) ? true : false;
+var isDev = (argv.dev === undefined) ? false : true;
+var isSourceMap = ((isDev == false && conf.sourceMap.createSourceMapProd) || (isDev == true && conf.sourceMap.createSourceMapDev)) ? true : false;
 
 
+// yum install imagemagick
+// yum install graphicsmagick 
+// установка gm https://gist.github.com/paul91/9008409
+//
 
-/*
-
-npm install -g doiuse
-
-*/
-
-
-var preSCSS = [
-    //  Используем @import
-    postcssImport({
-        path: conf.styles.options.includePaths,
-        extension: '.scss',
-        resolve: func.postcssImportResolve,
-    }),
-];
-
-var afterSCSS = [
-    autoprefixer(conf.styles.options.autoprefixer),
-    cssnano({
-        discardComments: {removeAll: true}
-    }),
-    require("css-mqpacker")()
-];
+//-------------------------------------------------------------------------
+//                 ОЧИСТКА ФАЙЛОВ
+//-------------------------------------------------------------------------
 
 gulp.task('clear:sprites-retina', function () {
     return del(conf.clear.spritesRetina);
 });
 
+gulp.task('clear:sprites-not-retina', function () {
+    return del(conf.clear.spritesNotRetina);
+});
 
 gulp.task('clear:build', function () {
     return del(conf.clear.build);
 });
 
+
 gulp.task('clear:cache', function () {
     return del(conf.clear.cache);
 });
+
+//-------------------------------------------------------------------------
+//                 ОБРАБОТКА ИЗОБРАЖЕНИЙ
+//-------------------------------------------------------------------------
 
 gulp.task('image:optimization', function () {
     return gulp
         .src(conf.images.src)
         .pipe(gulpif(!conf.images.directoriesCoincide, newer(conf.images.dist)))
         .pipe(gulpif(conf.images.directoriesCoincide, func.checkImageTimestamp()))
-        .pipe(imagemin(conf.images.imagemin.plugin,conf.images.imagemin.option))
+        .pipe(imagemin(conf.images.imagemin.plugin, conf.images.imagemin.option))
         .pipe(gulp.dest(conf.images.dist))
         .pipe(gulpif(conf.images.directoriesCoincide, func.createImageTimestamp()));
 });
 
+//-------------------------------------------------------------------------
+//                 СПРАЙТЫ С ПОДДЕРЖКОЙ РЕТИНЫ
+//-------------------------------------------------------------------------
+
+//todo: тут нужен не resize а extent, но он не работает корректно
 gulp.task('sprites:retina-preparation', ['clear:sprites-retina'], folders(conf.sprites.forRetina.src, function (folder) {
     return gulp.src(path.join(conf.sprites.forRetina.src, folder, conf.images.imageFormat))
         .pipe(gm(function handleGm(gmfile, done) {
-            gmfile.size(function handleSize(err, size) {
+            gmfile.size(function (err, size) {
                 if (err) {
+                    console.log(color('\nВнимание! Ошибка при обработке файла:\n', 'RED'));
+                    console.log(gmfile.source);
                     return done(err);
                 }
+
                 if (size.width % 2 === 0 && size.height % 2 === 0) {
                     return done(null, gmfile);
                 }
+
                 if (size.width % 2 !== 0 || size.height % 2 !== 0) {
-                    console.log(color('\nВнимание! Изображение по пути:', 'RED'));
+                    console.log(color('\nВнимание! Изображение по пути:', 'YELLOW'));
                     console.log(gmfile.source);
                     console.log('Имеет нечётную высоту/ширину. Для правильного ресайза до размеров x1, мы увеличили размеры изображения на 1 пиксель.\n');
-                    return done(null, gmfile
-                        .background('transparent')
-                        .gravity('northwest')
-                        .extent(size.width + (size.width % 2), size.height + (size.height % 2)));
+
+                     return done(null, gmfile
+                         .background('transparent')
+                         .gravity('center')
+                         .extent(size.width + (size.width % 2), size.height + (size.height % 2),'!'));
                 }
             });
         }))
         .pipe(gulp.dest(conf.sprites.forRetina.src + '/' + folder + '/x2/'));
 }));
+
 
 gulp.task('sprites:retina-resize', ['sprites:retina-preparation'], folders(conf.sprites.forRetina.src, function (folder) {
     return gulp.src(path.join(conf.sprites.forRetina.src, folder + '/x2', '*'))
@@ -151,6 +131,7 @@ gulp.task('sprites:retina-resize', ['sprites:retina-preparation'], folders(conf.
         .pipe(rename(conf.sprites.forRetina.namex1))
         .pipe(gulp.dest(conf.sprites.forRetina.src + '/' + folder + '/x1/'));
 }));
+
 
 gulp.task('sprites:retina', ['sprites:retina-resize'], folders(conf.sprites.forRetina.src, function (folder) {
     var salt = md5(Date());
@@ -181,6 +162,7 @@ gulp.task('sprites:retina', ['sprites:retina-resize'], folders(conf.sprites.forR
     return merge(imgStream, cssStream);
 }));
 
+
 gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
     return gulp
         .src(conf.sprites.forRetina.imgDist + conf.images.imageFormat)
@@ -189,9 +171,9 @@ gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
         .pipe(gulp.dest(conf.sprites.forRetina.imgDist));
 });
 
-gulp.task('clear:sprites-not-retina', function () {
-    return del(conf.clear.spritesNotRetina);
-});
+//-------------------------------------------------------------------------
+//                 СПРАЙТЫ БЕЗ ПОДДЕРЖКИ РЕТИНЫ
+//-------------------------------------------------------------------------
 
 gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(conf.sprites.notRetina.src, function (folder) {
     var salt = md5(Date());
@@ -225,57 +207,69 @@ gulp.task('sprites:not-retina-optimization', ['sprites:not-retina'], function ()
         .pipe(gulp.dest(conf.sprites.notRetina.imgDist));
 });
 
+//-------------------------------------------------------------------------
+//                 СБОРКА СТИЛЕЙ
+//-------------------------------------------------------------------------
+
+var postCSSConfig = {
+    before: [
+        postcssImport({
+            path: conf.styles.options.includePaths,
+            extension: '.scss',
+            resolve: func.postcssImportResolve,
+        }),
+    ],
+    after: [
+        autoprefixer(conf.styles.options.autoprefixer),
+        cssnano({
+            discardComments: {removeAll: true}
+        }),
+        require("css-mqpacker")()
+    ]
+};
+
+// сборка основных стили сайта
 gulp.task('styles:main', function () {
     return gulp
-        .src(conf.styles.main.src,)
+        .src(conf.styles.main.src)
         .pipe(plumber())
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
         .pipe(concat(conf.styles.main.outputName))
-        .pipe(postcss(preSCSS, {
+        .pipe(postcss(postCSSConfig.before, {
             parser: require('postcss-scss'),
         }))
         .pipe(sass({
             includePaths: conf.styles.options.includePaths,
             errLogToConsole: true
         }))
-        .pipe(postcss(afterSCSS))
+        .pipe(postcss(postCSSConfig.after))
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
         .pipe(gulp.dest(conf.styles.main.dist));
 });
 
-
-gulp.task('styles:info', function () {
-    return gulp.src('./css/*.css', { cwd: process.cwd() })
-        .pipe(postcss([
-            doiuse({
-                browsers: [
-                    'ie >= 8',
-                    '> 1%'
-                ],
-                ignore: ['rem'], // an optional array of features to ignore
-                ignoreFiles: ['**/normalize.css'], // an optional array of file globs to match against original source file path, to ignore
-                onFeatureUsage: function (usageInfo) {
-                    console.log(usageInfo)
-                }
-            })
-        ]))
-});
-
-gulp.task('styles:pages', function () {
+// сборка дополнительных файлов стилей
+gulp.task('styles:additional', function () {
     return gulp
-        .src(conf.styles.pages.src)
+        .src(conf.styles.additional.src)
         .pipe(plumber())
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
+        .pipe(postcss(postCSSConfig.before, {
+            parser: require('postcss-scss'),
+        }))
         .pipe(sass({
             includePaths: conf.styles.options.includePaths,
             errLogToConsole: true
         }))
-        .pipe(postcss(afterSCSS))
+        .pipe(postcss(postCSSConfig.after))
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
-        .pipe(gulp.dest(conf.styles.pages.dist));
+        .pipe(gulp.dest(conf.styles.additional.dist));
 });
+
+//-------------------------------------------------------------------------
+//                 СБОРКА СКРИПТОВ
+//-------------------------------------------------------------------------
 
 gulp.task('scripts:main', function () {
     return gulp
@@ -302,24 +296,20 @@ gulp.task('scripts:additional', function () {
         .pipe(gulp.dest(conf.scripts.additional.dist));
 });
 
-
-gulp.task('default', gulpsync.sync([
-    'clear:build',
-    ['sprites:retina-optimization', 'sprites:not-retina-optimization'],
-    'build',
-    'watch'], 'Этап'));
-
-gulp.task('build', ['styles:main', 'styles:pages', 'scripts:main', 'scripts:additional', 'image:optimization'], function () {
-    console.log(color('\nСкрипты и стили собранны\n', 'GREEN'));
-});
+//-------------------------------------------------------------------------
+//                 ОТСЛЕЖИВАНИЕ ИЗМЕНЕНИЙ
+//-------------------------------------------------------------------------
 
 gulp.task('watch', function () {
+
+    console.log(color('\nСкрипты и стили собранны\nЗапущен watch\n', 'GREEN'));
+
     watch(conf.styles.main.watchDir, conf.watch, function () {
         gulp.start('styles:main');
     });
 
-    watch(conf.styles.pages.watchDir, conf.watch, function () {
-        gulp.start('styles:pages');
+    watch(conf.styles.additional.watchDir, conf.watch, function () {
+        gulp.start('styles:additional');
     });
 
     watch(conf.scripts.main.watchDir, conf.watch, function () {
@@ -333,8 +323,30 @@ gulp.task('watch', function () {
     watch(conf.images.watchDir, conf.watch, function () {
         gulp.start('image:optimization');
     });
-
-    console.log(color('\nЗапущен watch\n', 'GREEN'));
 });
 
 
+//-------------------------------------------------------------------------
+//                 ОСНОВНАЯ СБОРКА
+//-------------------------------------------------------------------------
+
+gulp.task('default',
+    gulpsync.sync(
+        [
+            'clear:build',
+            [
+                'sprites:retina-optimization',
+                'sprites:not-retina-optimization'
+            ],
+            [
+                'styles:main',
+                'styles:additional',
+                'scripts:main',
+                'scripts:additional',
+                'image:optimization'
+            ],
+            'watch'
+        ],
+        'Этап'
+    )
+);

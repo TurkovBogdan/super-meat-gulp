@@ -1,35 +1,39 @@
 module.exports = {
+
+    // базовые настройки
+    basic: {
+        supportedBrowsers: ['last 5 versions', 'safari 5', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'],
+        cssSourceDir: './styles/',
+        jsSourceDir: './scripts/'
+    },
+
+    // настройки стилей
     styles: {
-        main:{
-            enable: true,
-            src: ['./styles/template_styles.scss'],
-            dist: './css/',
-            outputName: 'template_styles.css',
-            replaceUrl: {
-                enable: true,
-                from: /^((\.\.\/){0,}|(\/){0,})img/,
-                to: '../img'
-            },
+        // styles:main — основные стили сайта
+        main: {
+            enable: true,                               // включить/выключить
+            src: ['styles/template_styles.scss'],       // файл/файлы с которых начнёться сборка.
+            dist: './css/',                             // куда сохранить собранный файл
+            outputName: 'template_styles.css',          // имя собранного файла
             watchDir: [
                 'styles/**/*.{css,scss}',
-                '!styles/pages/**',
+                '!styles/additional/**',
             ],
         },
-        pages: {
-            enable: true,
-            src: './styles/pages/**/*.scss',
-            srcRoot: './styles/pages/',
-            dist: './css/',
-            replaceUrl: {
-                enable: false,
-                from: /^((\.\.\/){0,}|(\/){0,})img/,
-                to: '../img'
-            },
+        /* Дополнительные файлы стилей
+         * все файлы указанные в src будут собранны и сохранены отдельно */
+        additional: {
+            enable: true,                               // включить/выключить
+            src: ['./styles/additional/**/*.scss'],          // директория/директории или файлы для сборки
+            dist: './css/',                             // куда сохранить собранные файлы
             watchDir: [
                 'styles/**/*.{css,scss}'
             ]
         },
+
+        /* Настройки модулей */
         options: {
+
             includePaths: [
                 './styles/',
                 './styles/.vendor/',
@@ -42,10 +46,6 @@ module.exports = {
                     discardComments: {removeAll: true}
                 },
             },
-            imageHash: {
-                enable: true,
-                regexp: /(\.png|\.jpg)$/
-            },
             autoprefixer: {
                 browsers: ['last 5 versions', 'safari 5', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'],
                 cascade: false
@@ -54,7 +54,7 @@ module.exports = {
     },
 
     scripts: {
-        main:{
+        main: {
             enable: true,
             src: ['./scripts/main.js'],
             dist: './js/',
@@ -64,7 +64,7 @@ module.exports = {
                 '!scripts/additional/**',
             ],
         },
-        additional:{
+        additional: {
             enable: true,
             src: ['./scripts/additional/**/*.js'],
             dist: './js/',
@@ -164,7 +164,7 @@ module.exports = {
         }
     },
 
-    images:{
+    images: {
         enable: true,
         imageFormat: '*.{jpg,jpeg,png,gif}',
         src: [
