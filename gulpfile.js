@@ -31,16 +31,18 @@ var gulp = require('gulp'),
 
 var conf = require('./.gulp/gulpconf.js'),
     func = require('./.gulp/modules/func.js');
-conf['data'] = JSON.parse(fs.readFileSync('.gulp/cache/gulp.json', 'utf8'));
+    conf['data'] = JSON.parse(fs.readFileSync('.gulp/cache/gulp.json', 'utf8'));
 
 var isDev = (argv.dev === undefined) ? false : true;
 var isSourceMap = ((isDev == false && conf.sourceMap.createSourceMapProd) || (isDev == true && conf.sourceMap.createSourceMapDev)) ? true : false;
 
 
 // yum install imagemagick
-// yum install graphicsmagick 
+// yum install graphicsmagick
 // установка gm https://gist.github.com/paul91/9008409
 //
+
+
 
 //-------------------------------------------------------------------------
 //                 ОЧИСТКА ФАЙЛОВ
@@ -58,10 +60,11 @@ gulp.task('clear:build', function () {
     return del(conf.clear.build);
 });
 
-
 gulp.task('clear:cache', function () {
     return del(conf.clear.cache);
 });
+
+
 
 //-------------------------------------------------------------------------
 //                 ОБРАБОТКА ИЗОБРАЖЕНИЙ
@@ -77,11 +80,14 @@ gulp.task('image:optimization', function () {
         .pipe(gulpif(conf.images.directoriesCoincide, func.createImageTimestamp()));
 });
 
+
+
+//todo: всю обработку спрайтов кешировать
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ С ПОДДЕРЖКОЙ РЕТИНЫ
 //-------------------------------------------------------------------------
 
-//todo: тут нужен не resize а extent, но он не работает корректно
+var imagePreparationLog = [];
 gulp.task('sprites:retina-preparation', ['clear:sprites-retina'], folders(conf.sprites.forRetina.src, function (folder) {
     return gulp.src(path.join(conf.sprites.forRetina.src, folder, conf.images.imageFormat))
         .pipe(gm(function handleGm(gmfile, done) {
@@ -97,10 +103,7 @@ gulp.task('sprites:retina-preparation', ['clear:sprites-retina'], folders(conf.s
                 }
 
                 if (size.width % 2 !== 0 || size.height % 2 !== 0) {
-                    console.log(color('\nВнимание! Изображение по пути:', 'YELLOW'));
-                    console.log(gmfile.source);
-                    console.log('Имеет нечётную высоту/ширину. Для правильного ресайза до размеров x1, мы увеличили размеры изображения на 1 пиксель.\n');
-
+                    imagePreparationLog.push(gmfile.source);
                      return done(null, gmfile
                          .background('transparent')
                          .gravity('center')
@@ -134,7 +137,19 @@ gulp.task('sprites:retina-resize', ['sprites:retina-preparation'], folders(conf.
 
 
 gulp.task('sprites:retina', ['sprites:retina-resize'], folders(conf.sprites.forRetina.src, function (folder) {
+    if(imagePreparationLog.length > 0)
+    {
+        console.log(color('\nВнимание! Изображения по пути:', 'YELLOW'));
+        for (var i = 0; i < imagePreparationLog.length; i++) {
+            console.log(imagePreparationLog[i]);
+        }
+        console.log(color('Имееют нечётную высоту/ширину. Для правильного ресайза до размеров x1, мы увеличили размеры изображения на 1 пиксель.\n', 'YELLOW'));
+
+        imagePreparationLog.length = [];
+    }
+
     var salt = md5(Date());
+
     var spriteData = gulp.src([
         conf.sprites.forRetina.src + '/' + folder + '/x2/*',
         conf.sprites.forRetina.src + '/' + folder + '/x1/*'
@@ -171,6 +186,9 @@ gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
         .pipe(gulp.dest(conf.sprites.forRetina.imgDist));
 });
 
+
+
+//todo: всю обработку спрайтов кешировать
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ БЕЗ ПОДДЕРЖКИ РЕТИНЫ
 //-------------------------------------------------------------------------
@@ -206,6 +224,8 @@ gulp.task('sprites:not-retina-optimization', ['sprites:not-retina'], function ()
         .pipe(imagemin())
         .pipe(gulp.dest(conf.sprites.notRetina.imgDist));
 });
+
+
 
 //-------------------------------------------------------------------------
 //                 СБОРКА СТИЛЕЙ
@@ -267,6 +287,8 @@ gulp.task('styles:additional', function () {
         .pipe(gulp.dest(conf.styles.additional.dist));
 });
 
+
+
 //-------------------------------------------------------------------------
 //                 СБОРКА СКРИПТОВ
 //-------------------------------------------------------------------------
@@ -296,36 +318,8 @@ gulp.task('scripts:additional', function () {
         .pipe(gulp.dest(conf.scripts.additional.dist));
 });
 
-//-------------------------------------------------------------------------
-//                 ОТСЛЕЖИВАНИЕ ИЗМЕНЕНИЙ
-//-------------------------------------------------------------------------
 
-gulp.task('watch', function () {
-
-    console.log(color('\nСкрипты и стили собранны\nЗапущен watch\n', 'GREEN'));
-
-    watch(conf.styles.main.watchDir, conf.watch, function () {
-        gulp.start('styles:main');
-    });
-
-    watch(conf.styles.additional.watchDir, conf.watch, function () {
-        gulp.start('styles:additional');
-    });
-
-    watch(conf.scripts.main.watchDir, conf.watch, function () {
-        gulp.start('scripts:main');
-    });
-
-    watch(conf.scripts.additional.watchDir, conf.watch, function () {
-        gulp.start('scripts:additional');
-    });
-
-    watch(conf.images.watchDir, conf.watch, function () {
-        gulp.start('image:optimization');
-    });
-});
-
-
+//todo: добавить возможность отключать события
 //-------------------------------------------------------------------------
 //                 ОСНОВНАЯ СБОРКА
 //-------------------------------------------------------------------------
@@ -350,3 +344,36 @@ gulp.task('default',
         'Этап'
     )
 );
+
+
+//todo: добавить возможность отключать события
+//-------------------------------------------------------------------------
+//                 ОТСЛЕЖИВАНИЕ ИЗМЕНЕНИЙ
+//-------------------------------------------------------------------------
+
+gulp.task('watch', function () {
+
+    console.log(color('\nСкрипты и стили собранны\nЗапущен watch\n', 'GREEN'));
+
+    watch(conf.styles.main.watchDir, conf.watch, function () {
+        gulp.start('styles:main');
+    });
+
+    //todo: отдельная обработка для сокращения времени обработки
+    watch(conf.styles.additional.watchDir, conf.watch, function () {
+        gulp.start('styles:additional');
+    });
+
+    watch(conf.scripts.main.watchDir, conf.watch, function () {
+        gulp.start('scripts:main');
+    });
+
+    //todo: отдельная обработка для сокращения времени обработки
+    watch(conf.scripts.additional.watchDir, conf.watch, function () {
+        gulp.start('scripts:additional');
+    });
+
+    watch(conf.images.watchDir, conf.watch, function () {
+        gulp.start('image:optimization');
+    });
+});

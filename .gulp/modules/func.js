@@ -83,9 +83,7 @@ module.exports = {
 
 
     postcssImportResolve: function (id, basedir, importOptions) {
-
         var result = [];
-
         importOptions.path.forEach(function (element) {
             id = id.replace(/(\.\.\/){1,}/,'');
 
@@ -112,6 +110,9 @@ module.exports = {
                     if (fs.existsSync(element + '/' + id.replace(/[^\/]*$/,'_$&') + '.scss')) {
                         result.push(element + '/' + id.replace(/[^\/]*$/,'_$&') + '.scss');
                     }
+                    if (fs.existsSync(element + '/_' + id + '.scss')) {
+                        result.push(element + '/_' + id + '.scss');
+                    }
                 }
             }
             else {
@@ -122,11 +123,11 @@ module.exports = {
                 if (fs.existsSync(element + '/' + id.replace(/[^\/]*$/,'_$&'))) {
                     result.push(element + '/' + id.replace(/[^\/]*$/,'_$&'));
                 }
+                if (fs.existsSync(element + '/_' + id)) {
+                    result.push(element + '/_' + id );
+                }
             }
         });
-
         return result;
     }
-
-
 };
