@@ -2,14 +2,17 @@
 Нафаршированный в мясо сборщик
 
 ## Требования для установки
-1. Graphicsmagick версии 1.3.21 (или выше):
+**1.Graphicsmagick версии 1.3.21 (или выше).**
+
+Обычная установка:
 ```
-# Обычная установка
 yum install graphicsmagick
+#Проверяем версию
 gm -version
+```
 
-# Если после обычной установки версия gm ниже минимальной, установите gm из исходников:
-
+Если установленная версия ниже минимальной, устанавливаем gm из исходников
+```
 # Install build dependencies
 yum install -y gcc libpng libjpeg libpng-devel libjpeg-devel ghostscript libtiff libtiff-devel freetype freetype-devel
 
