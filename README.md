@@ -23,7 +23,7 @@ sudo yum -y install nodejs
 ```
 
 
-**3. Gulp
+**3. Gulp**
 ```
 npm install --global gulp
 ```
