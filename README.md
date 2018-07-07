@@ -15,11 +15,17 @@ yum install graphicsmagick
 gm version
 ```
 
-Если установленная версия ниже минимальной, устанавливаем gm из исходников
-```
-# Устанавливаем зависимости для компиляции
-yum install -y gcc libpng libjpeg libpng-devel libjpeg-devel ghostscript libtiff libtiff-devel freetype freetype-devel
+Если установленные версии ниже минимальных, смотрите раздел [Установка из исходников](##Установка из исходников)
 
+
+
+##Установка из исходников
+Устанавливаем компоненты для компиляции
+```
+yum install -y gcc libpng libjpeg libpng-devel libjpeg-devel ghostscript libtiff libtiff-devel freetype freetype-devel
+```
+Graphicsmagick
+```
 # Скачиваем исходники gm
 wget ftp://ftp.graphicsmagick.org/pub/GraphicsMagick/1.3/GraphicsMagick-1.3.30.tar.gz
 tar zxvf GraphicsMagick-1.3.30.tar.gz
