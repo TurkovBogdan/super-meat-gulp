@@ -19,8 +19,6 @@ gm version
 curl --silent --location https://rpm.nodesource.com/setup_10.x | sudo bash -
 sudo yum -y install nodejs
 ```
-[Установка на других ОС](https://nodejs.org/en/download/package-manager/)
-
 
 **3. Gulp**
 ```
