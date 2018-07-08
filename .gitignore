@@ -1,8 +1,7 @@
 node_modules
-*
-
+/*
 !package.json
 !gulpfile.js
 !.gitignore
 !.gulp
-!.gulp/*
+.gulp/cache
