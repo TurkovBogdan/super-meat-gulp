@@ -15,12 +15,11 @@ gm version
 *Если установленная версия ниже минимальной, смотрим раздел [установка из исходников](#Установка-из-исходников)*
 
 **2. NodeJS (тестировалось на версиях v6.9.2 и v10.1.0)**
-
-Установка на centos, для [других ос](https://nodejs.org/en/download/package-manager/)
 ```
 curl --silent --location https://rpm.nodesource.com/setup_10.x | sudo bash -
 sudo yum -y install nodejs
 ```
+[Установка на других ОС](https://nodejs.org/en/download/package-manager/)
 
 
 **3. Gulp**
