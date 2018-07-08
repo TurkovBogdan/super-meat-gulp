@@ -1,25 +1,45 @@
 # super-meat-gulp
 Нафаршированный в мясо сборщик
 
-[Требования для установки](#Требования-для-установки)
+[Требования](#Требования)
 
+## Требования
+*Представлен только код для установки на centos*
 
-## Требования для установки
 **1. Graphicsmagick версии 1.3.21 (или выше).**
-
-Обычная установка:
 ```
 yum install graphicsmagick
 
-#Проверяем версию
+#проверяем версию
 gm version
 ```
 
-Если установленная версия ниже минимальной, устанавливаем gm из исходников
-```
-# Устанавливаем зависимости для компиляции
-yum install -y gcc libpng libjpeg libpng-devel libjpeg-devel ghostscript libtiff libtiff-devel freetype freetype-devel
+**2. NodeJS (тестировалось на версиях v6.9.2 и v10.1.0)**
 
+Установка на centos, для [других ос](https://nodejs.org/en/download/package-manager/)
+```
+curl --silent --location https://rpm.nodesource.com/setup_10.x | sudo bash -
+sudo yum -y install nodejs
+```
+
+
+**3. Gulp**
+```
+npm install --global gulp
+```
+
+
+
+
+*Если установленные версии ниже минимальных, смотри раздел [установка из исходников](#Установка-из-исходников)*
+
+## Установка из исходников
+Устанавливаем компоненты для компиляции
+```
+yum install -y gcc libpng libjpeg libpng-devel libjpeg-devel ghostscript libtiff libtiff-devel freetype freetype-devel
+```
+**Graphicsmagick**
+```
 # Скачиваем исходники gm
 wget ftp://ftp.graphicsmagick.org/pub/GraphicsMagick/1.3/GraphicsMagick-1.3.30.tar.gz
 tar zxvf GraphicsMagick-1.3.30.tar.gz
