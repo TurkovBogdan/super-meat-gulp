@@ -51,16 +51,14 @@
 RAM >= 2GB<br>
 Cборщик жрёт ~260-589MB. Если оперативки на сервере меньше 2GB, даже не пробуйте (при 512MB не сможете установить, 1GB ошибки нехватки памяти).
 
-
-
 **1. GraphicsМagick версии 1.3.21 (или выше).**
 ```
 yum install graphicsmagick
 gm version
 ```
-*Если установленная версия ниже минимальной или пакет не найден, смотри [установка из исходников](##Установка-GraphicsМagick-из-исходников)*
+*Если установленная версия ниже минимальной или пакет не найден, смотри [установку GraphicsМagick из исходников](#Установка-graphicsМagick-из-исходников)*
 
-**2. NodeJS (тестировалось на версиях v6.9.2 и v10.1.0)**
+**2. [NodeJS](https://nodejs.org/en/download/package-manager/) (тестировалось на версиях v6.9.2 и v10.1.0)**
 ```
 curl --silent --location https://rpm.nodesource.com/setup_10.x | sudo bash -
 sudo yum -y install nodejs
