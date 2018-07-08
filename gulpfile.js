@@ -74,7 +74,6 @@ gulp.task('images:optimization', function () {
 
 
 
-//todo: всю обработку спрайтов кешировать
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ С ПОДДЕРЖКОЙ РЕТИНЫ
 //-------------------------------------------------------------------------
@@ -157,7 +156,7 @@ gulp.task('sprites:retina', ['sprites:retina-resize'], folders(conf.sprites.forR
             cssVarMap: function (sprite) {
                 sprite.name = sprite.name + '-' + folder;
             },
-            cssRetinaGroupsName: folder + '-retina-groups'
+            cssRetinaGroupsName: 'sprite-retina-'+folder
         }));
 
     var imgStream = spriteData.img
@@ -180,7 +179,6 @@ gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
 
 
 
-//todo: всю обработку спрайтов кешировать
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ БЕЗ ПОДДЕРЖКИ РЕТИНЫ
 //-------------------------------------------------------------------------
@@ -226,13 +224,16 @@ gulp.task('sprites:not-retina-optimization', ['sprites:not-retina'], function ()
 var postCSSConfig = {
     before: [
         postcssImport({
-            path: conf.styles.options.includePaths,
+            path: conf.styles.includePaths,
             extension: '.scss',
             resolve: func.postcssImportResolve,
         }),
     ],
     after: [
-        autoprefixer(conf.styles.options.autoprefixer),
+        autoprefixer({
+            browsers: conf.project.supportedBrowsers,
+            cascade: false
+        }),
         cssnano({
             discardComments: {removeAll: true}
         }),
@@ -252,7 +253,7 @@ gulp.task('styles:main', function () {
             parser: require('postcss-scss'),
         }))
         .pipe(sass({
-            includePaths: conf.styles.options.includePaths,
+            includePaths: conf.styles.includePaths,
             errLogToConsole: true
         }))
         .pipe(postcss(postCSSConfig.after))
@@ -271,7 +272,7 @@ gulp.task('styles:additional', function () {
             parser: require('postcss-scss'),
         }))
         .pipe(sass({
-            includePaths: conf.styles.options.includePaths,
+            includePaths: conf.styles.includePaths,
             errLogToConsole: true
         }))
         .pipe(postcss(postCSSConfig.after))
@@ -292,8 +293,16 @@ gulp.task('scripts:main', function () {
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
         .pipe(concat(conf.scripts.main.outputName))
-        .pipe(gulpif(conf.scripts.options.babel.enable, babel(conf.scripts.options.babel.options)))
-        .pipe(gulpif(conf.scripts.options.uglify.enable, uglify(conf.scripts.options.uglify.options)))
+        .pipe(gulpif(conf.scripts.plugins.babel, babel({
+            presets: [
+                ["env", {
+                    "targets": {
+                        "browsers": conf.project.browsers
+                    }
+                }]
+            ]
+        })))
+        .pipe(gulpif(conf.scripts.plugins.uglify, uglify()))
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
         .pipe(gulp.dest(conf.scripts.main.dist));
 });
@@ -304,8 +313,16 @@ gulp.task('scripts:additional', function () {
         .pipe(plumber())
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
-        .pipe(gulpif(conf.scripts.options.babel.enable, babel(conf.scripts.options.babel.options)))
-        .pipe(gulpif(conf.scripts.options.uglify.enable, uglify(conf.scripts.options.uglify.options)))
+        .pipe(gulpif(conf.scripts.plugins.babel, babel({
+            presets: [
+                ["env", {
+                    "targets": {
+                        "browsers": conf.project.browsers
+                    }
+                }]
+            ]
+        })))
+        .pipe(gulpif(conf.scripts.plugins.uglify, uglify()))
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
         .pipe(gulp.dest(conf.scripts.additional.dist));
 });
@@ -364,4 +381,16 @@ gulp.task('watch', function () {
         watch(conf.images.watchDir, conf.watch, function () {
             gulp.start('images:optimization');
         });
+});
+
+
+
+//-------------------------------------------------------------------------
+//                 Инициализация шаблона структуры
+//-------------------------------------------------------------------------
+
+gulp.task('styles:structure-pattern', function () {
+    return gulp
+        .src('./.gulp/structure-pattern/styles/'+conf.project.styleStructurePattern.pattern+'/**/*')
+        .pipe(gulp.dest(conf.project.styleStructurePattern.dist));
 });

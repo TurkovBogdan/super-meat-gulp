@@ -2,128 +2,90 @@ module.exports = {
     /* Что нам требуется? */
     tasks: {
       mainCSS: true,        // Сборка основного файла стилей
-      additionalCSS: false,  // Сборка дополнительных файлов стилей
-      mainJS: false,         // Сборка основного файла стилей
-      additionalJS: false,   // Сборка дополнительных файлов стилей
-      sprites: false,        // Спрайты без поддержки ретины
-      spritesRetina: false,  // Спрайты c поддержкой ретины
-      images: false,         // Обработка изображений
+      additionalCSS: true,  // Сборка дополнительных файлов стилей
+      mainJS: true,         // Сборка основного файла стилей
+      additionalJS: true,   // Сборка дополнительных файлов стилей
+      sprites: true,        // Спрайты без поддержки ретины
+      spritesRetina: true,  // Спрайты c поддержкой ретины
+      images: true,         // Обработка изображений
       watch: true,          // Отслеживание и автоприменение изменений
     },
 
-
-
-
-    // базовые настройки
-    basic: {
-        supportedBrowsers: ['last 5 versions', 'safari 5', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'],
-        cssSourceDir: './styles/',
-        jsSourceDir: './scripts/'
+    /* Настройки проетка */
+    project: {
+        // Поддерживаемые браузеры, используеться в автопрефиксере и других плагинах
+        // Список запросов https://github.com/browserslist/browserslist#queries
+        supportedBrowsers: ['> 1% in RU', 'ie >=9'],
+        // Шаблоны структуры стилей
+        // Доступные можно посмотреть тут .gulp/structure-pattern/styles
+        styleStructurePattern: {
+            dist: './styles/',  // Путь к директории с исходниками стилей
+            pattern: 'sass-7-1',
+        },
     },
 
-    // настройки стилей
+    /* Настройки задач, путей, плагинов */
     styles: {
-        // styles:main — основные стили сайта
+        // Сборка основных стилей
         main: {
-            enable: true,                               // включить/выключить
             src: ['styles/template_styles.scss'],       // файл/файлы с которых начнёться сборка.
             dist: './css/',                             // куда сохранить собранный файл
             outputName: 'template_styles.css',          // имя собранного файла
-            watchDir: [
+            watchDir: [                                 // при изменении каких файлов запускать задачу
                 'styles/**/*.{css,scss}',
-                '!styles/additional/**',
+                '!styles/additional/**',                // отключите отслеживание изменений для дополнительных стилей
             ],
         },
-        /* Дополнительные файлы стилей
-         * все файлы указанные в src будут собранны и сохранены отдельно */
+        // Сборка дополнительных стилей
         additional: {
-            enable: true,                               // включить/выключить
-            src: ['./styles/additional/**/*.scss'],          // директория/директории или файлы для сборки
+            src: ['./styles/additional/**/*.scss'],     // директория/директории или файлы для сборки
             dist: './css/',                             // куда сохранить собранные файлы
-            watchDir: [
+            watchDir: [                                 // при изменении каких файлов запускать задачу
                 'styles/**/*.{css,scss}'
             ]
         },
-
-        /* Настройки модулей */
-        options: {
-
-            includePaths: [
-                './styles/',
-                './styles/.vendor/',
-                './.vendor/',
-                './',
-            ],
-            cssnano: {
-                enable: true,
-                options: {
-                    discardComments: {removeAll: true}
-                },
-            },
-            autoprefixer: {
-                browsers: ['last 5 versions', 'safari 5', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'],
-                cascade: false
-            },
-        }
+        // Перечень путей, где сборщик будет искать файлы при использовании @import
+        includePaths: [
+            './styles/',
+            './styles/.vendor/',
+            './.vendor/',
+            './',
+        ],
     },
-
     scripts: {
+        // Сборка основных скриптов
         main: {
-            enable: true,
-            src: ['./scripts/main.js'],
-            dist: './js/',
-            outputName: 'scripts.min.js',
-            watchDir: [
+            src: ['./scripts/main.js'],                 // файл/файлы с которых начнёться сборка.
+            dist: './js/',                              // куда сохранить собранный файл
+            outputName: 'scripts.min.js',               // имя собранного файла
+            watchDir: [                                 // при изменении каких файлов запускать задачу
                 'scripts/**/*.js',
-                '!scripts/additional/**',
+                '!scripts/additional/**',               // отключите отслеживание изменений для дополнительных скриптов
             ],
         },
+        // Сборка дополнительных стилей
         additional: {
-            enable: true,
-            src: ['./scripts/additional/**/*.js'],
-            dist: './js/',
-            outputName: 'scripts.js',
-            watchDir: [
+            src: ['./scripts/additional/**/*.js'],      // файл/файлы с которых начнёться сборка.
+            dist: './js/',                              // куда сохранить собранный файл
+            watchDir: [                                 // при изменении каких файлов запускать задачу
                 'scripts/**/*.js'
             ],
         },
-        options: {
-            uglify: {
-                enable: true,
-                options: null,
-            },
-            babel: {
-                enable: true,
-                options: {
-                    presets: [
-                        ["env", {
-                            "targets": {
-                                "browsers": ["last 2 versions", "safari >= 7"]
-                            }
-                        }]
-                    ]
-                }
-            }
+        // Плагины
+        plugins: {
+            uglify: true,                               // Минификация
+            babel: true,                                // Поддержка ES6
         }
     },
 
     sprites: {
         forRetina: {
-            enable: true,
             src: './img/.sprites-retina',
             imgDist: './img/sprites-retina/',
             scssDist: './styles/sprites-retina/',
-            dist: '',
             namex1: {
-                prefix: "ic-",
+                prefix: "sprite-retina-",
             },
-
-            clearDir: [//Временные директории, очищаются перед сборкой спрайтов
-                './img/.sprites-retina/**/x2/',//Директория подготовки x2 изображений
-                './img/.sprites-retina/**/x1/',//Директория подготовки x1 изображений
-                './img/sprites-retina/*'//Директория с сформированными спрайтами (удаляем, т.к. файлы имеют хеш в названии)
-            ],
-
             spritesmith: {
                 retinaSrcFilter: ['/x2/*'],
                 retinaImgName: 'sprite@2x.png',
@@ -135,21 +97,6 @@ module.exports = {
                     sprite.name = sprite.name + '-nr';
                 }
             },
-
-            renameX1: {
-                //basename: "",
-                prefix: "ic-",
-                //suffix: '-x1',
-                //extname: ""
-            },
-
-            renameX2: {
-                //basename: "",
-                //prefix: "fix_",
-                suffix: '@x2',
-                //extname: ""
-            },
-
             watchImg: [
                 './img/.sprites-retina/**/*.{jpg,jpeg,png,gif}',
                 '!/img/.sprites-retina/**/x1/*',
@@ -159,7 +106,6 @@ module.exports = {
         },
 
         notRetina: {
-            enable: true,
             src: './img/.sprites',
             imgDist: './img/sprites/',
             scssDist: './styles/sprites/',
@@ -179,7 +125,6 @@ module.exports = {
     },
 
     images: {
-        enable: true,
         imageFormat: '*.{jpg,jpeg,png,gif}',
         src: [
             'img/**/*.{jpg,jpeg,png,gif,svg}',
@@ -214,6 +159,8 @@ module.exports = {
         spritesRetina: [
             './img/sprites-retina/',
             './styles/sprites-retina/',
+            './img/.sprites-retina/**/x1/',
+            './img/.sprites-retina/**/x2/',
         ],
         spritesNotRetina: [
             './img/sprites/',
@@ -221,17 +168,20 @@ module.exports = {
         ]
     },
 
+    /* Плагины */
+    // Генерация sourceMap
     sourceMap: {
         createSourceMapProd: true,
         createSourceMapDev: true,
         // Директория сохранения карт
         // null — сохранять информацию прямо в файле
-        saveDir: '../.source_maps',
+        saveDir: './.source_maps',
         options: {
             largeFile: true
         }
     },
 
+    // Отслеживание изменений
     watch: {
         ignoreInitial: true,
         awaitWriteFinish: true,
