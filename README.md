@@ -7,8 +7,6 @@
 
 
 ## Требования
-*Представлен только код для установки на centos*
-
 **1. Graphicsmagick версии 1.3.21 (или выше).**
 ```
 yum install graphicsmagick
