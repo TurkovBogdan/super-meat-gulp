@@ -37,13 +37,6 @@ var isDev = (argv.dev === undefined) ? false : true;
 var isSourceMap = ((isDev == false && conf.sourceMap.createSourceMapProd) || (isDev == true && conf.sourceMap.createSourceMapDev)) ? true : false;
 
 
-// yum install imagemagick
-// yum install graphicsmagick
-// установка gm https://gist.github.com/paul91/9008409
-//
-
-
-
 //-------------------------------------------------------------------------
 //                 ОЧИСТКА ФАЙЛОВ
 //-------------------------------------------------------------------------
@@ -65,12 +58,11 @@ gulp.task('clear:cache', function () {
 });
 
 
-
 //-------------------------------------------------------------------------
 //                 ОБРАБОТКА ИЗОБРАЖЕНИЙ
 //-------------------------------------------------------------------------
 
-gulp.task('image:optimization', function () {
+gulp.task('images:optimization', function () {
     return gulp
         .src(conf.images.src)
         .pipe(gulpif(!conf.images.directoriesCoincide, newer(conf.images.dist)))
@@ -319,61 +311,57 @@ gulp.task('scripts:additional', function () {
 });
 
 
-//todo: добавить возможность отключать события
 //-------------------------------------------------------------------------
 //                 ОСНОВНАЯ СБОРКА
 //-------------------------------------------------------------------------
 
-gulp.task('default',
-    gulpsync.sync(
-        [
-            'clear:build',
-            [
-                'sprites:retina-optimization',
-                'sprites:not-retina-optimization'
-            ],
-            [
-                'styles:main',
-                'styles:additional',
-                'scripts:main',
-                'scripts:additional',
-                'image:optimization'
-            ],
-            'watch'
-        ],
-        'Этап'
-    )
-);
+var tasks = [[], []];
+var tasksSync = ['clear:build'];
+conf.tasks.mainCSS === true && tasks[1].push('styles:main');
+conf.tasks.additionalCSS === true && tasks[1].push('styles:additional');
+conf.tasks.mainJS === true && tasks[1].push('scripts:main');
+conf.tasks.additionalJS === true && tasks[1].push('scripts:additional');
+conf.tasks.sprites === true && tasks[0].push('sprites:not-retina-optimization');
+conf.tasks.spritesRetina === true && tasks[0].push('sprites:retina-optimization');
+conf.tasks.images === true && tasks[0].push('images:optimization');
+
+tasks[0].length !== 0 && tasksSync.push(tasks[0]);
+tasks[1].length !== 0 && tasksSync.push(tasks[1]);
+conf.tasks.watch === true && tasksSync.push('watch');
+
+gulp.task('default', gulpsync.sync(tasksSync, 'Группа задач '));
 
 
-//todo: добавить возможность отключать события
 //-------------------------------------------------------------------------
 //                 ОТСЛЕЖИВАНИЕ ИЗМЕНЕНИЙ
 //-------------------------------------------------------------------------
 
 gulp.task('watch', function () {
-
     console.log(color('\nСкрипты и стили собранны\nЗапущен watch\n', 'GREEN'));
 
-    watch(conf.styles.main.watchDir, conf.watch, function () {
-        gulp.start('styles:main');
-    });
+    conf.tasks.mainCSS === true &&
+        watch(conf.styles.main.watchDir, conf.watch, function () {
+            gulp.start('styles:main');
+        });
 
-    //todo: отдельная обработка для сокращения времени обработки
-    watch(conf.styles.additional.watchDir, conf.watch, function () {
-        gulp.start('styles:additional');
-    });
+    conf.tasks.additionalCSS === true &&
+        watch(conf.styles.additional.watchDir, conf.watch, function () {
+            //todo: отдельная обработка для сокращения времени обработки
+            gulp.start('styles:additional');
+        });
 
-    watch(conf.scripts.main.watchDir, conf.watch, function () {
-        gulp.start('scripts:main');
-    });
+    conf.tasks.mainJS === true &&
+        watch(conf.scripts.main.watchDir, conf.watch, function () {
+            gulp.start('scripts:main');
+        });
 
-    //todo: отдельная обработка для сокращения времени обработки
-    watch(conf.scripts.additional.watchDir, conf.watch, function () {
-        gulp.start('scripts:additional');
-    });
-
-    watch(conf.images.watchDir, conf.watch, function () {
-        gulp.start('image:optimization');
-    });
+    conf.tasks.additionalJS === true &&
+        watch(conf.scripts.additional.watchDir, conf.watch, function () {
+            //todo: отдельная обработка для сокращения времени обработки
+            gulp.start('scripts:additional');
+        });
+    conf.tasks.images === true &&
+        watch(conf.images.watchDir, conf.watch, function () {
+            gulp.start('images:optimization');
+        });
 });
