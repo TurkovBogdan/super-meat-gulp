@@ -28,10 +28,10 @@ var gulp = require('gulp'),
     doiuse = require('doiuse'),
     postcss = require('gulp-postcss'),
     folders = require('gulp-folders');
+const imageminMozjpeg = require('imagemin-mozjpeg');
 
 var conf = require('./.gulp/gulpconf.js'),
     func = require('./.gulp/modules/func.js');
-    conf['data'] = JSON.parse(fs.readFileSync('.gulp/cache/gulp.json', 'utf8'));
 
 var isDev = (argv.dev === undefined) ? false : true;
 var isSourceMap = ((isDev == false && conf.sourceMap.createSourceMapProd) || (isDev == true && conf.sourceMap.createSourceMapDev)) ? true : false;
@@ -67,7 +67,17 @@ gulp.task('images:optimization', function () {
         .src(conf.images.src)
         .pipe(gulpif(!conf.images.directoriesCoincide, newer(conf.images.dist)))
         .pipe(gulpif(conf.images.directoriesCoincide, func.checkImageTimestamp()))
-        .pipe(imagemin(conf.images.imagemin.plugin, conf.images.imagemin.option))
+        .pipe(imagemin([
+            imagemin.gifsicle({interlaced: true}),
+            imageminMozjpeg({quality: 100}),
+            imagemin.optipng({optimizationLevel: 5}),
+            imagemin.svgo({
+                plugins: [
+                    {removeViewBox: true},
+                    {cleanupIDs: false}
+                ]
+            }),
+        ], conf.images.imagemin.option))
         .pipe(gulp.dest(conf.images.dist))
         .pipe(gulpif(conf.images.directoriesCoincide, func.createImageTimestamp()));
 });

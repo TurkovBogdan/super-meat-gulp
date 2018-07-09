@@ -1,4 +1,5 @@
 var fs = require('fs'),
+    path = require('path'),
     Transform = require('stream').Transform;
 
 module.exports = {
@@ -52,6 +53,15 @@ module.exports = {
         return transformStream;
     },
 
+    ensureDirectoryExistence: function (filePath) {
+        var dirname = path.dirname(filePath);
+        if (fs.existsSync(dirname)) {
+            return true;
+        }
+        this.ensureDirectoryExistence(dirname);
+        fs.mkdirSync(dirname);
+    },
+
     createImageTimestamp: function () {
         var fileTimestamp = {};
         if (fs.existsSync('.gulp/cache/processedImages.json')) {
@@ -75,6 +85,7 @@ module.exports = {
 
         transformStream.on('finish', () => {
             var json = JSON.stringify(fileTimestamp);
+            this.ensureDirectoryExistence('.gulp/cache/processedImages.json');
             fs.writeFileSync('.gulp/cache/processedImages.json', json, 'utf8');
         });
 
