@@ -125,7 +125,7 @@ module.exports = {
     },
 
     images: {
-        imageFormat: '*.{jpg,jpeg,png,gif}',
+        imageFormat: '*.{jpg,jpeg,png,gif,svg}',
         src: [
             'img/**/*.{jpg,jpeg,png,gif,svg}',
             '!img/.sprites/**/*',
@@ -134,7 +134,6 @@ module.exports = {
             '!img/sprites-retina/**/*',
         ],
         dist: './img/',
-        directoriesCoincide: true,
         watchDir: [
             'img/**/*.{jpg,jpeg,png,gif,svg}',
             '!img/.sprites/**/*',
@@ -142,8 +141,29 @@ module.exports = {
             '!img/sprites/**/*',
             '!img/sprites-retina/**/*',
         ],
-        imagemin: {
-            option: {/*verbose: true*/}
+
+        // Директория выборки и сохранения изображений совпадают
+        // Эта переменная переключает режим проверки были ли изображения оптимизированны
+        // Если при обработке изображений сборщик копирует файлы из одной директории в другую, присвойте значение false
+        srcIsDist: true,
+
+        // Нужно ли оптимизировать изображения
+        compression: {
+            jpg: {
+                enable: true,
+                quality: 100,               // Потеря качества, если 100, потери качества нет
+                mozjpgEnable: true,         // Включить обработку через mozjpeg. Если отключено, используеться jpegtran
+            },
+            png: {
+                enable: true,
+                speed: 10,                  // Колличество подходов при обработке, от 1 до 10 (больше = лучше и дольше)
+            },
+            gif: {
+                enable: true
+            },
+            svg: {
+                enable: true
+            },
         },
     },
 

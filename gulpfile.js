@@ -29,15 +29,14 @@ var gulp = require('gulp'),
     postcss = require('gulp-postcss'),
     folders = require('gulp-folders');
 const imageminMozjpeg = require('imagemin-mozjpeg');
+const imageminGiflossy = require('imagemin-giflossy');
+const imageminPngquant = require('imagemin-pngquant');
 
 var conf = require('./.gulp/gulpconf.js'),
     func = require('./.gulp/modules/func.js');
 
 var isDev = (argv.dev === undefined) ? false : true;
 var isSourceMap = ((isDev == false && conf.sourceMap.createSourceMapProd) || (isDev == true && conf.sourceMap.createSourceMapDev)) ? true : false;
-
-
-//yum install libtool automake autoconf nasm
 
 
 //-------------------------------------------------------------------------
@@ -64,28 +63,70 @@ gulp.task('clear:cache', function () {
 //-------------------------------------------------------------------------
 //                 ОБРАБОТКА ИЗОБРАЖЕНИЙ
 //-------------------------------------------------------------------------
+var imageMinConfig = [];
+
+if(conf.images.compression.jpg.enable === true)
+{
+    if(conf.images.compression.jpg.mozjpgEnable)
+        imageMinConfig.push(imageminMozjpeg({
+            quality: conf.images.compression.jpg.quality
+        }));
+    else
+        imageMinConfig.push(imagemin.jpegtran({
+            quality: conf.images.compression.jpg.quality
+        }));
+}
+
+if(conf.images.compression.png.enable === true)
+    imageMinConfig.push(imageminPngquant({
+        speed: 11 - conf.images.compression.png.speed
+    }));
+
+if(conf.images.compression.gif.enable === true)
+    imageMinConfig.push(imageminGiflossy({
+        optimizationLevel: 3,
+        optimize: 3
+    }));
+
+if(conf.images.compression.svg.enable === true)
+    imageMinConfig.push(imagemin.svgo({
+        plugins: [
+            {removeViewBox: true},
+            {cleanupIDs: false}
+        ]
+    }));
 
 gulp.task('images:optimization', function () {
     return gulp
         .src(conf.images.src)
-        .pipe(gulpif(!conf.images.directoriesCoincide, newer(conf.images.dist)))
-        .pipe(gulpif(conf.images.directoriesCoincide, func.checkImageTimestamp()))
-        .pipe(imagemin([
-            imagemin.gifsicle({interlaced: true}),
-            imageminMozjpeg({quality: 100}),
-            imagemin.optipng({optimizationLevel: 5}),
-            imagemin.svgo({
-                plugins: [
-                    {removeViewBox: true},
-                    {cleanupIDs: false}
-                ]
-            }),
-        ], conf.images.imagemin.option))
+        .pipe(gulpif(!conf.images.srcIsDist, newer(conf.images.dist)))
+        .pipe(gulpif(conf.images.srcIsDist, func.checkImageTimestamp()))
+        .pipe(imagemin(imageMinConfig, {
+            verbose: true
+        }))
         .pipe(gulp.dest(conf.images.dist))
-        .pipe(gulpif(conf.images.directoriesCoincide, func.createImageTimestamp()));
+        .pipe(gulpif(conf.images.srcIsDist, func.createImageTimestamp()));
 });
 
+gulp.task('sprites:not-retina-optimization', ['sprites:not-retina'], function () {
+    return gulp
+        .src(conf.sprites.notRetina.imgDist + conf.images.imageFormat)
+        .pipe(plumber())
+        .pipe(imagemin(imagemin(imageMinConfig, {
+            verbose: true
+        })))
+        .pipe(gulp.dest(conf.sprites.notRetina.imgDist));
+});
 
+gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
+    return gulp
+        .src(conf.sprites.forRetina.imgDist + conf.images.imageFormat)
+        .pipe(plumber())
+        .pipe(imagemin(imagemin(imageMinConfig, {
+            verbose: true
+        })))
+        .pipe(gulp.dest(conf.sprites.forRetina.imgDist));
+});
 
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ С ПОДДЕРЖКОЙ РЕТИНЫ
@@ -182,15 +223,6 @@ gulp.task('sprites:retina', ['sprites:retina-resize'], folders(conf.sprites.forR
 }));
 
 
-gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
-    return gulp
-        .src(conf.sprites.forRetina.imgDist + conf.images.imageFormat)
-        .pipe(plumber())
-        .pipe(imagemin())
-        .pipe(gulp.dest(conf.sprites.forRetina.imgDist));
-});
-
-
 
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ БЕЗ ПОДДЕРЖКИ РЕТИНЫ
@@ -220,13 +252,6 @@ gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(conf.sprit
     return merge(imgStream, cssStream);
 }));
 
-gulp.task('sprites:not-retina-optimization', ['sprites:not-retina'], function () {
-    return gulp
-        .src(conf.sprites.notRetina.imgDist + conf.images.imageFormat)
-        .pipe(plumber())
-        .pipe(imagemin())
-        .pipe(gulp.dest(conf.sprites.notRetina.imgDist));
-});
 
 
 
