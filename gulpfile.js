@@ -131,7 +131,6 @@ gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ С ПОДДЕРЖКОЙ РЕТИНЫ
 //-------------------------------------------------------------------------
-
 var imagePreparationLog = [];
 gulp.task('sprites:retina-preparation', ['clear:sprites-retina'], folders(conf.sprites.forRetina.src, function (folder) {
     return gulp.src(path.join(conf.sprites.forRetina.src, folder, conf.images.imageFormat))
@@ -227,7 +226,6 @@ gulp.task('sprites:retina', ['sprites:retina-resize'], folders(conf.sprites.forR
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ БЕЗ ПОДДЕРЖКИ РЕТИНЫ
 //-------------------------------------------------------------------------
-
 gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(conf.sprites.notRetina.src, function (folder) {
     var salt = md5(Date());
     var spriteData = gulp.src(path.join(conf.sprites.notRetina.src, folder, conf.images.imageFormat))
@@ -254,12 +252,12 @@ gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(conf.sprit
 
 
 
-
 //-------------------------------------------------------------------------
 //                 СБОРКА СТИЛЕЙ
 //-------------------------------------------------------------------------
-
+// Конфиг PostCSS
 var postCSSConfig = {
+    // Плагины выполняемые до обработки препроцессором
     before: [
         postcssImport({
             path: conf.styles.includePaths,
@@ -267,6 +265,7 @@ var postCSSConfig = {
             resolve: func.postcssImportResolve,
         }),
     ],
+    // Плагины выполняемые после обработки препроцессором
     after: [
         autoprefixer({
             browsers: conf.project.supportedBrowsers,
@@ -280,29 +279,47 @@ var postCSSConfig = {
 };
 
 // сборка основных стили сайта
+var stylesMain = {};
+if(conf.project.structure.styles.fileExtension.search( /\,/i ) === -1)
+    stylesMain.ext = conf.project.structure.styles.fileExtension;
+else
+    stylesMain.ext = '{'+conf.project.structure.styles.fileExtension+'}';
+
+stylesMain.src = conf.project.structure.styles.sourcesDir + conf.project.structure.styles.mainFile;
+stylesMain.dist = conf.project.structure.styles.dist;
+stylesMain.fileName = conf.project.structure.styles.distFileName;
+stylesMain.includePaths = [
+    conf.project.structure.styles.sourcesDir,
+    conf.project.structure.styles.vendorDir,
+    conf.project.structure.pmdir,
+    './'
+];
 gulp.task('styles:main', function () {
     return gulp
-        .src(conf.styles.main.src)
+        .src(stylesMain.src)
         .pipe(plumber())
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
-        .pipe(concat(conf.styles.main.outputName))
+        .pipe(concat(stylesMain.fileName))
         .pipe(postcss(postCSSConfig.before, {
             parser: require('postcss-scss'),
         }))
         .pipe(sass({
-            includePaths: conf.styles.includePaths,
+            includePaths: stylesMain.includePaths,
             errLogToConsole: true
         }))
         .pipe(postcss(postCSSConfig.after))
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
-        .pipe(gulp.dest(conf.styles.main.dist));
+        .pipe(gulp.dest(stylesMain.dist));
 });
 
 // сборка дополнительных файлов стилей
+var stylesAdditional = {};
+stylesAdditional.src = conf.project.structure.styles.additionalSourcesDir + '**/*.'+stylesMain.ext;
+stylesAdditional.dist = conf.project.structure.styles.additionalDist;
 gulp.task('styles:additional', function () {
     return gulp
-        .src(conf.styles.additional.src)
+        .src(stylesAdditional.src)
         .pipe(plumber())
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
@@ -310,12 +327,12 @@ gulp.task('styles:additional', function () {
             parser: require('postcss-scss'),
         }))
         .pipe(sass({
-            includePaths: conf.styles.includePaths,
+            includePaths: stylesMain.includePaths,
             errLogToConsole: true
         }))
         .pipe(postcss(postCSSConfig.after))
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
-        .pipe(gulp.dest(conf.styles.additional.dist));
+        .pipe(gulp.dest(stylesAdditional.dist));
 });
 
 
@@ -323,14 +340,19 @@ gulp.task('styles:additional', function () {
 //-------------------------------------------------------------------------
 //                 СБОРКА СКРИПТОВ
 //-------------------------------------------------------------------------
+// Основной скрипт
+var scriptsMain = {};
+    scriptsMain.src = conf.project.structure.scripts.sourcesDir + conf.project.structure.scripts.mainFile;
+    scriptsMain.dist = conf.project.structure.scripts.dist;
+    scriptsMain.fileName = conf.project.structure.scripts.distFileName;
 
 gulp.task('scripts:main', function () {
     return gulp
-        .src(conf.scripts.main.src)
+        .src(scriptsMain.src)
         .pipe(plumber())
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
-        .pipe(concat(conf.scripts.main.outputName))
+        .pipe(concat(scriptsMain.fileName))
         .pipe(gulpif(conf.scripts.plugins.babel, babel({
             presets: [
                 ["env", {
@@ -342,12 +364,21 @@ gulp.task('scripts:main', function () {
         })))
         .pipe(gulpif(conf.scripts.plugins.uglify, uglify()))
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
-        .pipe(gulp.dest(conf.scripts.main.dist));
+        .pipe(gulp.dest(scriptsMain.dist));
 });
+
+// Дополнительные файлы скриптов
+var scriptsAdditional = {};
+if(conf.project.structure.scripts.fileExtension.search( /\,/i ) === -1)
+    scriptsMain.ext = conf.project.structure.scripts.fileExtension;
+else
+    scriptsMain.ext = '{'+conf.project.structure.scripts.fileExtension+'}';
+scriptsAdditional.src = conf.project.structure.scripts.additionalSourcesDir + '**/*.'+scriptsAdditional.ext;
+scriptsAdditional.dist = conf.project.structure.scripts.additionalDist;
 
 gulp.task('scripts:additional', function () {
     return gulp
-        .src(conf.scripts.additional.src)
+        .src(scriptsAdditional.src)
         .pipe(plumber())
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
@@ -362,14 +393,13 @@ gulp.task('scripts:additional', function () {
         })))
         .pipe(gulpif(conf.scripts.plugins.uglify, uglify()))
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
-        .pipe(gulp.dest(conf.scripts.additional.dist));
+        .pipe(gulp.dest(scriptsAdditional.dist));
 });
 
 
 //-------------------------------------------------------------------------
 //                 ОСНОВНАЯ СБОРКА
 //-------------------------------------------------------------------------
-
 var tasks = [[], []];
 var tasksSync = ['clear:build'];
 conf.tasks.mainCSS === true && tasks[1].push('styles:main');
@@ -390,31 +420,49 @@ gulp.task('default', gulpsync.sync(tasksSync, 'Группа задач '));
 //-------------------------------------------------------------------------
 //                 ОТСЛЕЖИВАНИЕ ИЗМЕНЕНИЙ
 //-------------------------------------------------------------------------
-
 gulp.task('watch', function () {
     console.log(color('\nСкрипты и стили собранны\nЗапущен watch\n', 'GREEN'));
 
+    // watch для основных стилей
+    var watchStylesMain = [];
+    watchStylesMain.push(conf.project.structure.styles.sourcesDir+'**/*.'+stylesMain.ext);
+    watchStylesMain.push('!'+conf.project.structure.styles.additionalSourcesDir+'**');
     conf.tasks.mainCSS === true &&
-        watch(conf.styles.main.watchDir, conf.watch, function () {
+        watch(watchStylesMain, conf.watch, function () {
             gulp.start('styles:main');
         });
 
+
+    // watch для дополнительных стилей
+    var watchStylesAdditional = [];
+    watchStylesAdditional.push(conf.project.structure.styles.sourcesDir+'**/*.'+stylesMain.ext);
     conf.tasks.additionalCSS === true &&
         watch(conf.styles.additional.watchDir, conf.watch, function () {
             //todo: отдельная обработка для сокращения времени обработки
             gulp.start('styles:additional');
         });
 
+    // watch для основных скриптов
+    var watchScriptsMain = [];
+    watchScriptsMain.push(conf.project.structure.scripts.sourcesDir+'**/*.'+scriptsMain.ext);
+    watchScriptsMain.push('!'+conf.project.structure.scripts.additionalSourcesDir+'**');
     conf.tasks.mainJS === true &&
-        watch(conf.scripts.main.watchDir, conf.watch, function () {
+        watch(watchScriptsMain, conf.watch, function () {
             gulp.start('scripts:main');
         });
 
+    // watch для дополнительных скриптов
+    var watchScriptsAdditional = [];
+    watchScriptsAdditional.push(conf.project.structure.scripts.sourcesDir+'**/*.'+scriptsMain.ext);
     conf.tasks.additionalJS === true &&
         watch(conf.scripts.additional.watchDir, conf.watch, function () {
             //todo: отдельная обработка для сокращения времени обработки
             gulp.start('scripts:additional');
         });
+
+
+
+
     conf.tasks.images === true &&
         watch(conf.images.watchDir, conf.watch, function () {
             gulp.start('images:optimization');
@@ -426,6 +474,38 @@ gulp.task('watch', function () {
 //-------------------------------------------------------------------------
 //                 Инициализация шаблона структуры
 //-------------------------------------------------------------------------
+gulp.task('patterns:base-structure', function () {
+    if(conf.tasks.mainCSS)
+    {
+        if (!fs.existsSync(conf.project.structure.styles.dir))
+            fs.mkdirSync(conf.project.structure.styles.dir);
+
+        if (!fs.existsSync(conf.styles.main.src))
+        {
+            func.ensureDirectoryExistence(conf.styles.main.src);
+            fs.writeFileSync(conf.styles.main.src, '', 'utf8');
+        }
+    }
+
+    if(conf.tasks.additionalCSS)
+    {
+
+    }
+
+    /*
+    if (!fs.existsSync(conf.project.structure.images.dir))
+        fs.mkdirSync(conf.project.structure.images.dir);
+
+    if (!fs.existsSync(conf.project.structure.styles.dir))
+        fs.mkdirSync(conf.project.structure.styles.dir);
+
+    if (!fs.existsSync(conf.project.structure.scripts.dir))
+        fs.mkdirSync(conf.project.structure.scripts.dir);
+
+
+*/
+});
+
 
 gulp.task('styles:structure-pattern', function () {
     return gulp

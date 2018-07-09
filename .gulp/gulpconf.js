@@ -1,13 +1,13 @@
 module.exports = {
-    /* Что нам требуется? */
+    /* Настройки задач */
     tasks: {
       mainCSS: true,        // Сборка основного файла стилей
       additionalCSS: true,  // Сборка дополнительных файлов стилей
       mainJS: true,         // Сборка основного файла стилей
       additionalJS: true,   // Сборка дополнительных файлов стилей
-      sprites: true,        // Спрайты без поддержки ретины
-      spritesRetina: true,  // Спрайты c поддержкой ретины
-      images: true,         // Обработка изображений
+      sprites: false,        // Спрайты без поддержки ретины
+      spritesRetina: false,  // Спрайты c поддержкой ретины
+      images: false,         // Обработка изображений
       watch: true,          // Отслеживание и автоприменение изменений
     },
 
@@ -16,29 +16,84 @@ module.exports = {
         // Поддерживаемые браузеры, используеться в автопрефиксере и других плагинах
         // Список запросов https://github.com/browserslist/browserslist#queries
         supportedBrowsers: ['> 1% in RU', 'ie >=9'],
-        // Шаблоны структуры стилей
-        // Доступные можно посмотреть тут .gulp/structure-pattern/styles
-        styleStructurePattern: {
-            dist: './styles/',  // Путь к директории с исходниками стилей
-            pattern: 'sass-7-1',
+
+        structure: {
+            pmdir: '.vendor',                             // директория в которую складывает файлы ващ менеджер пакетов (bower/yarn)
+            styles: {
+                fileExtension: 'css,scss',                  // расширения файлов для сборки
+                sourcesDir: 'styles/',                    // директоиря исходников стилей
+                vendorDir: 'styles/vendor/',              // вендоры
+                mainFile: 'main.scss',                      // основной файл для сборки
+                additionalSourcesDir: 'styles/pages/',    // директория отдельно собираемых (дополнительных) стилей
+
+                dist: 'css/',                             // директория для сохранения основного файла стилей
+                distFileName: 'styles.css',                 // имя собранного основго файла стилей
+                additionalDist: 'css/',                   // директория для сохранения дополнительных файлов стилей
+
+                patterns: [
+                    'sass-7-1-without-themes',
+                    'sass-help',
+                ],
+            },
+            scripts: {
+                fileExtension: 'js',                              // расширения файлов для сборки
+                sourcesDir: 'scripts/',                           // директоиря исходников скриптов
+                vendorDir: 'scripts/vendor/',                     // вендоры
+                mainFile: 'main.js',                                // основной файл для сборки
+                additionalSourcesDir: 'scripts/additional/',      // директория отдельно собираемых (дополнительных) стилей
+
+                dist: 'js/',                                      // директория для сохранения основного файла стилей
+                distFileName: 'scripts.js',                         // имя собранного основго файла стилей
+                additionalDist: 'js/',                            // директория для сохранения дополнительных файлов стилей
+
+                patterns: [
+
+                ],
+            },
+            images: {
+                fileExtension: ['jpg,jpeg,png,gif,svg'],
+                sourcesDir: './img/',                               // Где храниться графика для сборки
+                dist: './img/',
+            }
         },
     },
+
+    /* Общие плагины */
+    // Генерация sourceMap
+    sourceMap: {
+        createSourceMapProd: true,
+        createSourceMapDev: true,
+        // Директория сохранения карт
+        // null — сохранять информацию прямо в файле
+        saveDir: './.source_maps',
+        options: {
+            largeFile: true
+        }
+    },
+    // Отслеживание изменений
+    watch: {
+        ignoreInitial: true,
+        awaitWriteFinish: true,
+        read: false,
+    },
+
+
 
     /* Настройки задач, путей, плагинов */
     styles: {
         // Сборка основных стилей
         main: {
-            src: ['styles/template_styles.scss'],       // файл/файлы с которых начнёться сборка.
+            src: 'styles/main.scss',       // файл с которых начнёться сборка.
             dist: './css/',                             // куда сохранить собранный файл
-            outputName: 'template_styles.css',          // имя собранного файла
+            outputName: 'styles.css',          // имя собранного файла
             watchDir: [                                 // при изменении каких файлов запускать задачу
                 'styles/**/*.{css,scss}',
-                '!styles/additional/**',                // отключите отслеживание изменений для дополнительных стилей
+                '!styles/pages/**',                // отключите отслеживание изменений для дополнительных стилей
             ],
         },
         // Сборка дополнительных стилей
         additional: {
-            src: ['./styles/additional/**/*.scss'],     // директория/директории или файлы для сборки
+            src: ['./styles/pages/**/*.scss'],     // директория/директории или файлы для сборки
             dist: './css/',                             // куда сохранить собранные файлы
             watchDir: [                                 // при изменении каких файлов запускать задачу
                 'styles/**/*.{css,scss}'
@@ -55,8 +110,8 @@ module.exports = {
     scripts: {
         // Сборка основных скриптов
         main: {
-            src: ['./scripts/main.js'],                 // файл/файлы с которых начнёться сборка.
-            dist: './js/',                              // куда сохранить собранный файл
+            src: ['scripts/main.js'],                 // файл/файлы с которых начнёться сборка.
+            dist: 'js/',                              // куда сохранить собранный файл
             outputName: 'scripts.min.js',               // имя собранного файла
             watchDir: [                                 // при изменении каких файлов запускать задачу
                 'scripts/**/*.js',
@@ -65,8 +120,8 @@ module.exports = {
         },
         // Сборка дополнительных стилей
         additional: {
-            src: ['./scripts/additional/**/*.js'],      // файл/файлы с которых начнёться сборка.
-            dist: './js/',                              // куда сохранить собранный файл
+            src: ['scripts/additional/**/*.js'],      // файл/файлы с которых начнёться сборка.
+            dist: 'js/',                              // куда сохранить собранный файл
             watchDir: [                                 // при изменении каких файлов запускать задачу
                 'scripts/**/*.js'
             ],
@@ -77,7 +132,48 @@ module.exports = {
             babel: true,                                // Поддержка ES6
         }
     },
+    images: {
+        imageFormat: '*.{jpg,jpeg,png,gif,svg}',
+        src: [
+            'img/**/*.{jpg,jpeg,png,gif,svg}',
+            '!img/.sprites/**/*',
+            '!img/.sprites-retina/**/*',
+            '!img/sprites/**/*',
+            '!img/sprites-retina/**/*',
+        ],
+        dist: './img/',
+        watchDir: [
+            'img/**/*.{jpg,jpeg,png,gif,svg}',
+            '!img/.sprites/**/*',
+            '!img/.sprites-retina/**/*',
+            '!img/sprites/**/*',
+            '!img/sprites-retina/**/*',
+        ],
 
+        // Директория выборки и сохранения изображений совпадают
+        // Эта переменная переключает режим проверки были ли изображения оптимизированны
+        // Если при обработке изображений сборщик копирует файлы из одной директории в другую, присвойте значение false
+        srcIsDist: true,
+
+        // Нужно ли оптимизировать изображения
+        compression: {
+            jpg: {
+                enable: true,
+                quality: 100,               // Потеря качества, если 100, потери качества нет
+                mozjpgEnable: true,         // Включить обработку через mozjpeg. Если отключено, используеться jpegtran
+            },
+            png: {
+                enable: true,
+                speed: 10,                  // Колличество подходов при обработке, от 1 до 10 (больше = лучше и дольше)
+            },
+            gif: {
+                enable: true
+            },
+            svg: {
+                enable: true
+            },
+        },
+    },
     sprites: {
         forRetina: {
             src: './img/.sprites-retina',
@@ -124,48 +220,6 @@ module.exports = {
         }
     },
 
-    images: {
-        imageFormat: '*.{jpg,jpeg,png,gif,svg}',
-        src: [
-            'img/**/*.{jpg,jpeg,png,gif,svg}',
-            '!img/.sprites/**/*',
-            '!img/.sprites-retina/**/*',
-            '!img/sprites/**/*',
-            '!img/sprites-retina/**/*',
-        ],
-        dist: './img/',
-        watchDir: [
-            'img/**/*.{jpg,jpeg,png,gif,svg}',
-            '!img/.sprites/**/*',
-            '!img/.sprites-retina/**/*',
-            '!img/sprites/**/*',
-            '!img/sprites-retina/**/*',
-        ],
-
-        // Директория выборки и сохранения изображений совпадают
-        // Эта переменная переключает режим проверки были ли изображения оптимизированны
-        // Если при обработке изображений сборщик копирует файлы из одной директории в другую, присвойте значение false
-        srcIsDist: true,
-
-        // Нужно ли оптимизировать изображения
-        compression: {
-            jpg: {
-                enable: true,
-                quality: 100,               // Потеря качества, если 100, потери качества нет
-                mozjpgEnable: true,         // Включить обработку через mozjpeg. Если отключено, используеться jpegtran
-            },
-            png: {
-                enable: true,
-                speed: 10,                  // Колличество подходов при обработке, от 1 до 10 (больше = лучше и дольше)
-            },
-            gif: {
-                enable: true
-            },
-            svg: {
-                enable: true
-            },
-        },
-    },
 
     clear: {
         build: [
@@ -187,24 +241,4 @@ module.exports = {
             './styles/sprites/',
         ]
     },
-
-    /* Плагины */
-    // Генерация sourceMap
-    sourceMap: {
-        createSourceMapProd: true,
-        createSourceMapDev: true,
-        // Директория сохранения карт
-        // null — сохранять информацию прямо в файле
-        saveDir: './.source_maps',
-        options: {
-            largeFile: true
-        }
-    },
-
-    // Отслеживание изменений
-    watch: {
-        ignoreInitial: true,
-        awaitWriteFinish: true,
-        read: false,
-    }
 };
