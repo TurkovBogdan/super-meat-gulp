@@ -56,6 +56,11 @@ RAM >= 2GB<br>
 Cборщик использует ~260-589mb оперативки. Если её меньше 2GB, лучше не пробуйте его устанавливать, только потеряете время.
 (при 512mb не сможете установить, при 1gb ошибки нехватки памяти при работе с графикой).
 
+Ставим пакеты для компиляции
+```
+yum install -y gcc libpng libjpeg libpng-devel libjpeg-devel ghostscript libtiff libtiff-devel freetype freetype-devel libtool automake autoconf nasm
+```
+
 **1. Git**
 ```
 yum install git
