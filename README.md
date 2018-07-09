@@ -103,15 +103,11 @@ npm install
 ## FAQ
 ### Установка GraphicsМagick из исходников
 ```
-# Выполняем из под root или через sudo
-# Устанавливаем компоненты для компиляции
-yum install -y gcc libpng libjpeg libpng-devel libjpeg-devel ghostscript libtiff libtiff-devel freetype freetype-devel
-
 # Переходим в временную директорию
 cd /tmp/
 
 # Скачиваем исходники gm
-wget ftp://ftp.graphicsmagick.org/pub/GraphicsMagick/1.3/GraphicsMagick-1.3.30.tar.gz
+wget https://sources.voidlinux.eu/GraphicsMagick-1.3.30/GraphicsMagick-1.3.30.tar.gz
 tar zxvf GraphicsMagick-1.3.30.tar.gz
 
 # Компилим и устанавливаем
