@@ -37,6 +37,9 @@ var isDev = (argv.dev === undefined) ? false : true;
 var isSourceMap = ((isDev == false && conf.sourceMap.createSourceMapProd) || (isDev == true && conf.sourceMap.createSourceMapDev)) ? true : false;
 
 
+//yum install libtool automake autoconf nasm
+
+
 //-------------------------------------------------------------------------
 //                 ОЧИСТКА ФАЙЛОВ
 //-------------------------------------------------------------------------
