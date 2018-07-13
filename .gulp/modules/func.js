@@ -3,7 +3,7 @@ var fs = require('fs'),
     Transform = require('stream').Transform;
 
 module.exports = {
-    checkImageTimestamp: function () {
+    checkImageTimestamp: function (fileName) {
         var imagesCount = {
             all: 0,
             processed: 0,
@@ -11,8 +11,8 @@ module.exports = {
         }
 
         var imageHash = {};
-        if (fs.existsSync('.gulp/cache/processedImages.json')) {
-            imageHash = JSON.parse(fs.readFileSync('.gulp/cache/processedImages.json', 'utf8'));
+        if (fs.existsSync('.gulp/cache/'+fileName)) {
+            imageHash = JSON.parse(fs.readFileSync('.gulp/cache/'+fileName, 'utf8'));
         }
 
         var transformStream = new Transform({objectMode: true});
@@ -47,7 +47,7 @@ module.exports = {
         };
 
         transformStream.on('finish', () => {
-            console.log('');
+            //console.log('');
         });
 
         return transformStream;
@@ -62,11 +62,11 @@ module.exports = {
         fs.mkdirSync(dirname);
     },
 
-    createImageTimestamp: function () {
-        var fileTimestamp = {};
-        if (fs.existsSync('.gulp/cache/processedImages.json')) {
-            fileTimestamp = JSON.parse(fs.readFileSync('.gulp/cache/processedImages.json', 'utf8'));
+    createImageTimestamp: function (fileName) {
+        if (!fs.existsSync('.gulp/cache/')) {
+            this.ensureDirectoryExistence('.gulp/cache/');
         }
+
         var transformStream = new Transform({objectMode: true});
 
         transformStream._transform = function(file, encoding, callback) {
@@ -77,17 +77,23 @@ module.exports = {
 
             if (file.isBuffer()) {
                 var stats = fs.statSync(file.path).mtime.toString();
+                var fileTimestamp = {};
+                if (fs.existsSync('.gulp/cache/'+fileName)) {
+                    fileTimestamp = JSON.parse(fs.readFileSync('.gulp/cache/'+fileName, 'utf8'));
+                }
                 fileTimestamp[file.path] = stats;
+
+                var json = JSON.stringify(fileTimestamp);
+                fs.writeFileSync('.gulp/cache/'+fileName, json, 'utf8');
             }
 
             callback(null, file);
         };
 
-        transformStream.on('finish', () => {
-            var json = JSON.stringify(fileTimestamp);
-            this.ensureDirectoryExistence('.gulp/cache/processedImages.json');
-            fs.writeFileSync('.gulp/cache/processedImages.json', json, 'utf8');
-        });
+/*        transformStream.on('finish', () => {
+            console.log('');
+            console.log(fileTimestamp);
+        });*/
 
         return transformStream;
     },
@@ -95,7 +101,8 @@ module.exports = {
 
     postcssImportResolve: function (id, basedir, importOptions) {
         var result = [];
-        importOptions.path.forEach(function (element) {
+
+        for (let element of importOptions.path) {
             id = id.replace(/(\.\.\/){1,}/,'');
 
             if (!id.match(/(.scss)/g)) {
@@ -105,40 +112,46 @@ module.exports = {
                     isDir = stat.isDirectory();
                 }
                 catch (ex) {}
-
                 if(isDir)
                 {
                     var files = fs.readdirSync(element + '/' + id);
                     files.forEach(function (fileName) {
                         result.push(element + '/' + id + '/' + fileName);
                     });
+                    break;
                 }
                 else
                 {
                     if (fs.existsSync(element + '/' + id + '.scss')) {
                         result.push(element + '/' + id + '.scss');
+                        break;
                     }
                     if (fs.existsSync(element + '/' + id.replace(/[^\/]*$/,'_$&') + '.scss')) {
                         result.push(element + '/' + id.replace(/[^\/]*$/,'_$&') + '.scss');
+                        break;
                     }
                     if (fs.existsSync(element + '/_' + id + '.scss')) {
                         result.push(element + '/_' + id + '.scss');
+                        break;
                     }
                 }
             }
             else {
                 if (fs.existsSync(element + '/' + id)) {
                     result.push(element + '/' + id);
+                    break;
                 }
 
                 if (fs.existsSync(element + '/' + id.replace(/[^\/]*$/,'_$&'))) {
                     result.push(element + '/' + id.replace(/[^\/]*$/,'_$&'));
+                    break;
                 }
                 if (fs.existsSync(element + '/_' + id)) {
                     result.push(element + '/_' + id );
+                    break;
                 }
             }
-        });
+        }
         return result;
     }
 };

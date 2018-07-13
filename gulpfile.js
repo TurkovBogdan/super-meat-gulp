@@ -27,25 +27,24 @@ var gulp = require('gulp'),
     gulpsync = require('gulp-sync')(gulp),
     doiuse = require('doiuse'),
     postcss = require('gulp-postcss'),
-    folders = require('gulp-folders');
-const imageminMozjpeg = require('imagemin-mozjpeg');
-const imageminGiflossy = require('imagemin-giflossy');
-const imageminPngquant = require('imagemin-pngquant');
+    fsCache = require('gulp-fs-cache'),
+    folders = require('gulp-folders'),
+    batch = require('gulp-batch'),
+    imageminMozjpeg = require('imagemin-mozjpeg'),
+    imageminGiflossy = require('imagemin-giflossy'),
+    imageminPngquant = require('imagemin-pngquant');
 
 var conf = require('./.gulp/gulpconf.js'),
     func = require('./.gulp/modules/func.js');
 
 var isDev = (argv.dev === undefined) ? false : true;
 var isSourceMap = ((isDev == false && conf.sourceMap.createSourceMapProd) || (isDev == true && conf.sourceMap.createSourceMapDev)) ? true : false;
-
+var watchIsEnable = false;
 
 //-------------------------------------------------------------------------
 //                 ОЧИСТКА ФАЙЛОВ
 //-------------------------------------------------------------------------
 
-gulp.task('clear:sprites-retina', function () {
-    return del(conf.clear.spritesRetina);
-});
 
 gulp.task('clear:sprites-not-retina', function () {
     return del(conf.clear.spritesNotRetina);
@@ -65,9 +64,8 @@ gulp.task('clear:cache', function () {
 //-------------------------------------------------------------------------
 var imageMinConfig = [];
 
-if(conf.images.compression.jpg.enable === true)
-{
-    if(conf.images.compression.jpg.mozjpgEnable)
+if (conf.images.compression.jpg.enable === true) {
+    if (conf.images.compression.jpg.mozjpgEnable)
         imageMinConfig.push(imageminMozjpeg({
             quality: conf.images.compression.jpg.quality
         }));
@@ -77,18 +75,18 @@ if(conf.images.compression.jpg.enable === true)
         }));
 }
 
-if(conf.images.compression.png.enable === true)
+if (conf.images.compression.png.enable === true)
     imageMinConfig.push(imageminPngquant({
         speed: 11 - conf.images.compression.png.speed
     }));
 
-if(conf.images.compression.gif.enable === true)
+if (conf.images.compression.gif.enable === true)
     imageMinConfig.push(imageminGiflossy({
         optimizationLevel: 3,
         optimize: 3
     }));
 
-if(conf.images.compression.svg.enable === true)
+if (conf.images.compression.svg.enable === true)
     imageMinConfig.push(imagemin.svgo({
         plugins: [
             {removeViewBox: true},
@@ -96,44 +94,63 @@ if(conf.images.compression.svg.enable === true)
         ]
     }));
 
+// Основной скрипт
+var images = {};
+if (conf.project.structure.images.fileExtension.search(/\,/i) === -1)
+    images.ext = conf.project.structure.images.fileExtension;
+else
+    images.ext = '{' + conf.project.structure.images.fileExtension + '}';
+
+images.src = [];
+images.src.push(conf.project.structure.images.sourcesDir + '**/*.' + images.ext);
+images.src.push('!' + conf.project.structure.sprites.notRetina.sourcesDir + '**/*');
+images.src.push('!' + conf.project.structure.sprites.retina.sourcesDir + '**/*');
+images.src.push('!' + conf.project.structure.sprites.notRetina.imgDist + '**/*');
+images.src.push('!' + conf.project.structure.sprites.retina.imgDist + '**/*');
+
+images.dist = conf.project.structure.images.dist;
+images.srcIsDist = false;
+if (conf.project.structure.images.sourcesDir === conf.project.structure.images.dist)
+    images.srcIsDist = true;
+
 gulp.task('images:optimization', function () {
     return gulp
-        .src(conf.images.src)
-        .pipe(gulpif(!conf.images.srcIsDist, newer(conf.images.dist)))
-        .pipe(gulpif(conf.images.srcIsDist, func.checkImageTimestamp()))
+        .src(images.src)
+        .pipe(plumber())
+        .pipe(gulpif(!images.srcIsDist, newer(images.dist)))
+        .pipe(gulpif(images.srcIsDist, func.checkImageTimestamp('processedImages.json')))
         .pipe(imagemin(imageMinConfig, {
             verbose: true
         }))
-        .pipe(gulp.dest(conf.images.dist))
-        .pipe(gulpif(conf.images.srcIsDist, func.createImageTimestamp()));
-});
-
-gulp.task('sprites:not-retina-optimization', ['sprites:not-retina'], function () {
-    return gulp
-        .src(conf.sprites.notRetina.imgDist + conf.images.imageFormat)
-        .pipe(plumber())
-        .pipe(imagemin(imagemin(imageMinConfig, {
-            verbose: true
-        })))
-        .pipe(gulp.dest(conf.sprites.notRetina.imgDist));
-});
-
-gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
-    return gulp
-        .src(conf.sprites.forRetina.imgDist + conf.images.imageFormat)
-        .pipe(plumber())
-        .pipe(imagemin(imagemin(imageMinConfig, {
-            verbose: true
-        })))
-        .pipe(gulp.dest(conf.sprites.forRetina.imgDist));
+        .pipe(gulp.dest(images.dist))
+        .pipe(gulpif(images.srcIsDist, func.createImageTimestamp('processedImages.json')));
 });
 
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ С ПОДДЕРЖКОЙ РЕТИНЫ
 //-------------------------------------------------------------------------
+var spritesRetina = {};
+spritesRetina.src = conf.project.structure.sprites.retina.sourcesDir;
+spritesRetina.imgDist = conf.project.structure.sprites.retina.imgDist;
+spritesRetina.ext = '*.' + images.ext;
+
+gulp.task('clear:sprites-retina-cache', function () {
+    return del([
+        conf.project.structure.sprites.retina.sourcesDir + '**/x2/',
+        conf.project.structure.sprites.retina.sourcesDir + '**/x1/',
+    ]);
+});
+
+gulp.task('clear:sprites-retina', function () {
+    return del([
+        conf.project.structure.sprites.retina.imgDist + '*',
+    ]);
+});
+
 var imagePreparationLog = [];
-gulp.task('sprites:retina-preparation', ['clear:sprites-retina'], folders(conf.sprites.forRetina.src, function (folder) {
-    return gulp.src(path.join(conf.sprites.forRetina.src, folder, conf.images.imageFormat))
+gulp.task('sprites:retina-preparation', ['clear:sprites-retina'], folders(spritesRetina.src, function (folder) {
+    return gulp.src(path.join(spritesRetina.src, folder, '*.' + images.ext))
+        .pipe(newer(spritesRetina.src + folder + '/x2/'))
         .pipe(gm(function handleGm(gmfile, done) {
             gmfile.size(function (err, size) {
                 if (err) {
@@ -148,19 +165,24 @@ gulp.task('sprites:retina-preparation', ['clear:sprites-retina'], folders(conf.s
 
                 if (size.width % 2 !== 0 || size.height % 2 !== 0) {
                     imagePreparationLog.push(gmfile.source);
-                     return done(null, gmfile
-                         .background('transparent')
-                         .gravity('center')
-                         .extent(size.width + (size.width % 2), size.height + (size.height % 2),'!'));
+                    return done(null, gmfile
+                        .background('transparent')
+                        .gravity('center')
+                        .extent(size.width + (size.width % 2), size.height + (size.height % 2), '!'));
                 }
             });
         }))
-        .pipe(gulp.dest(conf.sprites.forRetina.src + '/' + folder + '/x2/'));
+        .pipe(gulp.dest(spritesRetina.src + folder + '/x2/'));
 }));
 
-
-gulp.task('sprites:retina-resize', ['sprites:retina-preparation'], folders(conf.sprites.forRetina.src, function (folder) {
-    return gulp.src(path.join(conf.sprites.forRetina.src, folder + '/x2', '*'))
+gulp.task('sprites:retina-resize', ['sprites:retina-preparation'], folders(spritesRetina.src, function (folder) {
+    return gulp.src(path.join(spritesRetina.src, folder + '/x2', '*'))
+        .pipe(newer({
+            dest: spritesRetina.src + folder + '/x1/',
+            map: function (relativePath) {
+                return "ic-"+relativePath;
+            }
+        }))
         .pipe(gm(function handleGm(gmfile, done) {
             gmfile.size(function handleSize(err, size) {
                 if (err) {
@@ -175,31 +197,32 @@ gulp.task('sprites:retina-resize', ['sprites:retina-preparation'], folders(conf.
                     .resize(size.width / 2, size.height / 2, '!'));
             });
         }))
-        .pipe(rename(conf.sprites.forRetina.namex1))
-        .pipe(gulp.dest(conf.sprites.forRetina.src + '/' + folder + '/x1/'));
+        .pipe(rename({
+            prefix: "ic-",
+        }))
+        .pipe(gulp.dest(spritesRetina.src + folder + '/x1/'));
 }));
 
 
-gulp.task('sprites:retina', ['sprites:retina-resize'], folders(conf.sprites.forRetina.src, function (folder) {
-    if(imagePreparationLog.length > 0)
-    {
+gulp.task('sprites:retina', ['sprites:retina-resize'], folders(spritesRetina.src, function (folder) {
+    if (imagePreparationLog.length > 0) {
         console.log(color('\nВнимание! Изображения по пути:', 'YELLOW'));
         for (var i = 0; i < imagePreparationLog.length; i++) {
             console.log(imagePreparationLog[i]);
         }
         console.log(color('Имееют нечётную высоту/ширину. Для правильного ресайза до размеров x1, мы увеличили размеры изображения на 1 пиксель.\n', 'YELLOW'));
-
         imagePreparationLog.length = [];
     }
 
     var salt = md5(Date());
 
+    /**/
     var spriteData = gulp.src([
-        conf.sprites.forRetina.src + '/' + folder + '/x2/*',
-        conf.sprites.forRetina.src + '/' + folder + '/x1/*'
+        spritesRetina.src + folder + '/x2/*',
+        spritesRetina.src + folder + '/x1/*'
     ])
         .pipe(spritesmith({
-            retinaSrcFilter: [conf.sprites.forRetina.src + '/' + folder + '/x2/*.*'],
+            retinaSrcFilter: [spritesRetina.src + folder + '/x2/*.*'],
             retinaImgName: 'sprite-' + folder + '-' + salt + '@2x.png',
             imgName: 'sprite-' + folder + '-' + salt + '@1x.png',
             cssName: 'sprite-' + folder + '.scss',
@@ -209,30 +232,47 @@ gulp.task('sprites:retina', ['sprites:retina-resize'], folders(conf.sprites.forR
             cssVarMap: function (sprite) {
                 sprite.name = sprite.name + '-' + folder;
             },
-            cssRetinaGroupsName: 'sprite-retina-'+folder
+            cssRetinaGroupsName: folder + '-retina-groups'
         }));
 
     var imgStream = spriteData.img
-        .pipe(gulp.dest(conf.sprites.forRetina.imgDist));
+        .pipe(gulp.dest('./img/sprites-retina/'));
 
     var cssStream = spriteData.css
-        .pipe(gulp.dest(conf.sprites.forRetina.scssDist));
+        .pipe(gulp.dest('./styles/sprites-retina/'));
 
+    /**/
     return merge(imgStream, cssStream);
 }));
 
-
+gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
+    if (watchIsEnable) {
+        gulp.start('styles:main');
+        gulp.start('styles:additional');
+    }
+    return gulp
+        .src(spritesRetina.imgDist + spritesRetina.ext)
+        .pipe(plumber())
+        .pipe(imagemin(imageMinConfig, {
+            verbose: true
+        }))
+        .pipe(gulp.dest('./img/sprites-retina/'));
+});
 
 //-------------------------------------------------------------------------
 //                 СПРАЙТЫ БЕЗ ПОДДЕРЖКИ РЕТИНЫ
 //-------------------------------------------------------------------------
-gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(conf.sprites.notRetina.src, function (folder) {
+var spritesNotRetina = {};
+spritesNotRetina.src = conf.project.structure.sprites.notRetina.sourcesDir;
+spritesNotRetina.ext = '*.' + images.ext;
+
+gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(spritesNotRetina.src, function (folder) {
     var salt = md5(Date());
-    var spriteData = gulp.src(path.join(conf.sprites.notRetina.src, folder, conf.images.imageFormat))
+    var spriteData = gulp.src(path.join(spritesNotRetina.src, folder, spritesNotRetina.ext))
         .pipe(spritesmith({
-            imgName: conf.sprites.notRetina.imagePrefix + folder + '-' + salt + conf.sprites.notRetina.imageExtension,
-            cssName: conf.sprites.notRetina.imagePrefix + folder + conf.sprites.notRetina.styleExtension,
-            imgPath: conf.sprites.notRetina.styleLinkToImg + conf.sprites.notRetina.imagePrefix + folder + '-' + salt + conf.sprites.notRetina.imageExtension,
+            imgName: 'sprite-' + folder + '-' + salt + '.png',
+            cssName: 'sprite-' + folder + '.scss',
+            imgPath: '../img/sprites/' + 'sprite-' + folder + '-' + salt + '.png',
             padding: 10,
             cssVarMap: function (sprite) {
                 sprite.name = folder + '-' + sprite.name;
@@ -242,48 +282,38 @@ gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(conf.sprit
     var imgStream = spriteData.img
         .pipe(plumber())
         .pipe(buffer())
-        .pipe(gulp.dest(conf.sprites.notRetina.imgDist));
+        .pipe(gulp.dest('./img/sprites/'));
 
     var cssStream = spriteData.css
-        .pipe(gulp.dest(conf.sprites.notRetina.scssDist));
+        .pipe(gulp.dest('./styles/sprites/'));
 
     return merge(imgStream, cssStream);
 }));
 
+gulp.task('sprites:not-retina-optimization', ['sprites:not-retina'], function () {
+    if (watchIsEnable) {
+        gulp.start('styles:main');
+        gulp.start('styles:additional');
+    }
+    return gulp
+        .src('./img/sprites/' + spritesNotRetina.ext)
+        .pipe(plumber())
+        .pipe(imagemin(imagemin(imageMinConfig, {
+            verbose: true
+        })))
+        .pipe(gulp.dest('./img/sprites/'));
+});
 
 
 //-------------------------------------------------------------------------
 //                 СБОРКА СТИЛЕЙ
 //-------------------------------------------------------------------------
-// Конфиг PostCSS
-var postCSSConfig = {
-    // Плагины выполняемые до обработки препроцессором
-    before: [
-        postcssImport({
-            path: conf.styles.includePaths,
-            extension: '.scss',
-            resolve: func.postcssImportResolve,
-        }),
-    ],
-    // Плагины выполняемые после обработки препроцессором
-    after: [
-        autoprefixer({
-            browsers: conf.project.supportedBrowsers,
-            cascade: false
-        }),
-        cssnano({
-            discardComments: {removeAll: true}
-        }),
-        require("css-mqpacker")()
-    ]
-};
-
 // сборка основных стили сайта
 var stylesMain = {};
-if(conf.project.structure.styles.fileExtension.search( /\,/i ) === -1)
+if (conf.project.structure.styles.fileExtension.search(/\,/i) === -1)
     stylesMain.ext = conf.project.structure.styles.fileExtension;
 else
-    stylesMain.ext = '{'+conf.project.structure.styles.fileExtension+'}';
+    stylesMain.ext = '{' + conf.project.structure.styles.fileExtension + '}';
 
 stylesMain.src = conf.project.structure.styles.sourcesDir + conf.project.structure.styles.mainFile;
 stylesMain.dist = conf.project.structure.styles.dist;
@@ -294,6 +324,30 @@ stylesMain.includePaths = [
     conf.project.structure.pmdir,
     './'
 ];
+
+// Конфиг PostCSS
+var postCSSConfig = {
+    // Плагины выполняемые до обработки препроцессором
+    before: [
+        postcssImport({
+            path: stylesMain.includePaths,
+            extension: '.scss',
+            resolve: func.postcssImportResolve,
+        }),
+    ],
+    // Плагины выполняемые после обработки препроцессором
+    after: [
+        require("css-mqpacker")(),
+        autoprefixer({
+            browsers: conf.project.supportedBrowsers,
+            cascade: false
+        }),
+        cssnano({
+            discardComments: {removeAll: true}
+        }),
+    ]
+};
+
 gulp.task('styles:main', function () {
     return gulp
         .src(stylesMain.src)
@@ -315,7 +369,7 @@ gulp.task('styles:main', function () {
 
 // сборка дополнительных файлов стилей
 var stylesAdditional = {};
-stylesAdditional.src = conf.project.structure.styles.additionalSourcesDir + '**/*.'+stylesMain.ext;
+stylesAdditional.src = conf.project.structure.styles.additionalSourcesDir + '**/*.' + stylesMain.ext;
 stylesAdditional.dist = conf.project.structure.styles.additionalDist;
 gulp.task('styles:additional', function () {
     return gulp
@@ -336,22 +390,24 @@ gulp.task('styles:additional', function () {
 });
 
 
-
 //-------------------------------------------------------------------------
 //                 СБОРКА СКРИПТОВ
 //-------------------------------------------------------------------------
 // Основной скрипт
 var scriptsMain = {};
-    scriptsMain.src = conf.project.structure.scripts.sourcesDir + conf.project.structure.scripts.mainFile;
-    scriptsMain.dist = conf.project.structure.scripts.dist;
-    scriptsMain.fileName = conf.project.structure.scripts.distFileName;
+scriptsMain.src = conf.project.structure.scripts.sourcesDir + conf.project.structure.scripts.mainFile;
+scriptsMain.dist = conf.project.structure.scripts.dist;
+scriptsMain.fileName = conf.project.structure.scripts.distFileName;
 
 gulp.task('scripts:main', function () {
+    var jsCache = fsCache('.gulp/cache/js');
+
     return gulp
         .src(scriptsMain.src)
         .pipe(plumber())
         .pipe(gulpif(isSourceMap, sourcemaps.init(conf.sourceMap.options)))
         .pipe(include())
+        .pipe(jsCache)
         .pipe(concat(scriptsMain.fileName))
         .pipe(gulpif(conf.scripts.plugins.babel, babel({
             presets: [
@@ -363,17 +419,18 @@ gulp.task('scripts:main', function () {
             ]
         })))
         .pipe(gulpif(conf.scripts.plugins.uglify, uglify()))
+        .pipe(jsCache.restore)
         .pipe(gulpif(isSourceMap, sourcemaps.write(conf.sourceMap.saveDir)))
         .pipe(gulp.dest(scriptsMain.dist));
 });
 
 // Дополнительные файлы скриптов
 var scriptsAdditional = {};
-if(conf.project.structure.scripts.fileExtension.search( /\,/i ) === -1)
-    scriptsMain.ext = conf.project.structure.scripts.fileExtension;
+if (conf.project.structure.scripts.fileExtension.search(/\,/i) === -1)
+    scriptsAdditional.ext = conf.project.structure.scripts.fileExtension;
 else
-    scriptsMain.ext = '{'+conf.project.structure.scripts.fileExtension+'}';
-scriptsAdditional.src = conf.project.structure.scripts.additionalSourcesDir + '**/*.'+scriptsAdditional.ext;
+    scriptsAdditional.ext = '{' + conf.project.structure.scripts.fileExtension + '}';
+scriptsAdditional.src = conf.project.structure.scripts.additionalSourcesDir + '**/*.' + scriptsAdditional.ext;
 scriptsAdditional.dist = conf.project.structure.scripts.additionalDist;
 
 gulp.task('scripts:additional', function () {
@@ -420,75 +477,107 @@ gulp.task('default', gulpsync.sync(tasksSync, 'Группа задач '));
 //-------------------------------------------------------------------------
 //                 ОТСЛЕЖИВАНИЕ ИЗМЕНЕНИЙ
 //-------------------------------------------------------------------------
+
+var watchConfig = {
+    ignoreInitial: true,
+    awaitWriteFinish: true,
+    read: false,
+    verbose: false,
+    readDelay: 600,
+};
+
 gulp.task('watch', function () {
+    watchIsEnable = true;
     console.log(color('\nСкрипты и стили собранны\nЗапущен watch\n', 'GREEN'));
 
     // watch для основных стилей
     var watchStylesMain = [];
-    watchStylesMain.push(conf.project.structure.styles.sourcesDir+'**/*.'+stylesMain.ext);
-    watchStylesMain.push('!'+conf.project.structure.styles.additionalSourcesDir+'**');
+    watchStylesMain.push(conf.project.structure.styles.sourcesDir + '**/*.' + stylesMain.ext);
+    watchStylesMain.push('!' + conf.project.structure.styles.additionalSourcesDir + '**');
+    watchStylesMain.push('!' + conf.project.structure.sprites.notRetina.scssDist + '**');
+    watchStylesMain.push('!' + conf.project.structure.sprites.retina.scssDist + '**');
     conf.tasks.mainCSS === true &&
-        watch(watchStylesMain, conf.watch, function () {
-            gulp.start('styles:main');
-        });
-
+    watch(watchStylesMain, watchConfig, function () {
+        gulp.start('styles:main');
+        gulp.start('styles:additional');
+    });
 
     // watch для дополнительных стилей
     var watchStylesAdditional = [];
-    watchStylesAdditional.push(conf.project.structure.styles.sourcesDir+'**/*.'+stylesMain.ext);
+    watchStylesAdditional.push(conf.project.structure.styles.sourcesDir + '**/*.' + stylesMain.ext);
+    watchStylesAdditional.push('!' + conf.project.structure.sprites.notRetina.scssDist + '**');
+    watchStylesAdditional.push('!' + conf.project.structure.sprites.retina.scssDist + '**');
     conf.tasks.additionalCSS === true &&
-        watch(conf.styles.additional.watchDir, conf.watch, function () {
-            //todo: отдельная обработка для сокращения времени обработки
-            gulp.start('styles:additional');
-        });
+    watch(watchStylesAdditional, watchConfig, function () {
+        //todo: отдельная обработка для сокращения времени обработки
+        gulp.start('styles:additional');
+    });
 
     // watch для основных скриптов
     var watchScriptsMain = [];
-    watchScriptsMain.push(conf.project.structure.scripts.sourcesDir+'**/*.'+scriptsMain.ext);
-    watchScriptsMain.push('!'+conf.project.structure.scripts.additionalSourcesDir+'**');
+    watchScriptsMain.push(conf.project.structure.scripts.sourcesDir + '**/*.' + scriptsMain.ext);
+    watchScriptsMain.push('!' + conf.project.structure.scripts.additionalSourcesDir + '**');
     conf.tasks.mainJS === true &&
-        watch(watchScriptsMain, conf.watch, function () {
-            gulp.start('scripts:main');
-        });
+    watch(watchScriptsMain, watchConfig, function () {
+        gulp.start('scripts:main');
+        gulp.start('scripts:additional');
+    });
 
     // watch для дополнительных скриптов
     var watchScriptsAdditional = [];
-    watchScriptsAdditional.push(conf.project.structure.scripts.sourcesDir+'**/*.'+scriptsMain.ext);
+    watchScriptsAdditional.push(conf.project.structure.scripts.sourcesDir + '**/*.' + scriptsAdditional.ext);
     conf.tasks.additionalJS === true &&
-        watch(conf.scripts.additional.watchDir, conf.watch, function () {
-            //todo: отдельная обработка для сокращения времени обработки
-            gulp.start('scripts:additional');
-        });
+    watch(watchScriptsAdditional, watchConfig, batch({timeout: 600},function (events, cb) {
+        gulp.start('scripts:additional');
+    }));
 
-
-
-
+    // watch для изображений
+    var watchImages = [];
+    watchImages.push(conf.project.structure.images.sourcesDir + '**/*.' + images.ext);
+    watchImages.push('!' + conf.project.structure.sprites.notRetina.sourcesDir + '**/*');
+    watchImages.push('!' + conf.project.structure.sprites.retina.sourcesDir + '**/*');
+    watchImages.push('!' + conf.project.structure.sprites.notRetina.imgDist + '**/*');
+    watchImages.push('!' + conf.project.structure.sprites.retina.imgDist + '**/*');
     conf.tasks.images === true &&
-        watch(conf.images.watchDir, conf.watch, function () {
-            gulp.start('images:optimization');
-        });
-});
+    watch(watchImages, watchConfig, batch({timeout: 1200}, function (events, cb) {
+        gulp.start('images:optimization');
+    }));
 
+    // watch для спрайтов без ретины
+    var watchSprites = [];
+    watchSprites.push(conf.project.structure.sprites.notRetina.sourcesDir + '**/*');
+    conf.tasks.sprites === true &&
+    watch(watchSprites, watchConfig, batch({timeout: 500}, function (events, cb) {
+        gulp.start('sprites:not-retina-optimization');
+    }));
+
+    //watch для спрайтов с ретиной
+    var watchSpritesRetina = [];
+    watchSpritesRetina.push(conf.project.structure.sprites.retina.sourcesDir + '**/*');
+    watchSpritesRetina.push('!' + conf.project.structure.sprites.retina.sourcesDir + '**/x1/*');
+    watchSpritesRetina.push('!' + conf.project.structure.sprites.retina.sourcesDir + '**/x2/*');
+    conf.tasks.spritesRetina === true &&
+    watch(watchSpritesRetina, watchConfig, batch({timeout: 500}, function (events, cb) {
+        gulp.start('sprites:retina-optimization')
+    }));
+});
 
 
 //-------------------------------------------------------------------------
 //                 Инициализация шаблона структуры
 //-------------------------------------------------------------------------
 gulp.task('patterns:base-structure', function () {
-    if(conf.tasks.mainCSS)
-    {
+    if (conf.tasks.mainCSS) {
         if (!fs.existsSync(conf.project.structure.styles.dir))
             fs.mkdirSync(conf.project.structure.styles.dir);
 
-        if (!fs.existsSync(conf.styles.main.src))
-        {
+        if (!fs.existsSync(conf.styles.main.src)) {
             func.ensureDirectoryExistence(conf.styles.main.src);
             fs.writeFileSync(conf.styles.main.src, '', 'utf8');
         }
     }
 
-    if(conf.tasks.additionalCSS)
-    {
+    if (conf.tasks.additionalCSS) {
 
     }
 
@@ -509,6 +598,6 @@ gulp.task('patterns:base-structure', function () {
 
 gulp.task('styles:structure-pattern', function () {
     return gulp
-        .src('./.gulp/structure-pattern/styles/'+conf.project.styleStructurePattern.pattern+'/**/*')
+        .src('./.gulp/structure-pattern/styles/' + conf.project.styleStructurePattern.pattern + '/**/*')
         .pipe(gulp.dest(conf.project.styleStructurePattern.dist));
 });
