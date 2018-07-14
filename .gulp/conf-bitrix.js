@@ -14,20 +14,22 @@ module.exports = {
     /* Настройки проетка */
     project: {
         // Поддерживаемые браузеры, используеться в автопрефиксере и других плагинах
-        // Список запросов https://github.com/browserslist/browserslist#queries
         supportedBrowsers: ['> 1% in RU', 'ie >=9'],
-
+        // Структура проекта
         structure: {
             pmdir: '.vendor',                             // директория в которую складывает файлы ващ менеджер пакетов (bower/yarn)
             styles: {
                 fileExtension: 'css,scss',                  // расширения файлов для сборки
                 sourcesDir: 'styles/',                    // директоиря исходников стилей
                 vendorDir: 'styles/vendor/',              // вендоры
-                mainFile: 'template_styles.scss',                      // основной файл для сборки
-                additionalSourcesDir: 'styles/pages/',    // директория отдельно собираемых (дополнительных) стилей
-
+                // основной файл/файлы для сборки
+                mainFile: [
+                    'template_styles.scss'
+                ],
                 dist: 'css/',                             // директория для сохранения основного файла стилей
                 distFileName: 'template_styles.css',                 // имя собранного основго файла стилей
+
+                additionalSourcesDir: 'styles/pages/',    // директория отдельно собираемых (дополнительных) стилей
                 additionalDist: 'css/',                   // директория для сохранения дополнительных файлов стилей
 
                 patterns: [
@@ -39,14 +41,16 @@ module.exports = {
                 fileExtension: 'js',                              // расширения файлов для сборки
                 sourcesDir: 'scripts/',                           // директоиря исходников скриптов
                 vendorDir: 'scripts/vendor/',                     // вендоры
-                mainFile: 'main.js',                                // основной файл для сборки
-                additionalSourcesDir: 'scripts/pages/',      // директория отдельно собираемых (дополнительных) стилей
-
+                // основной файл/файлы для сборки
+                mainFile: [
+                    'main.js'
+                ],
+                additionalSourcesDir: 'scripts/additionally/',      // директория отдельно собираемых (дополнительных) стилей
                 dist: 'js/',                                      // директория для сохранения основного файла стилей
                 distFileName: 'scripts.js',                         // имя собранного основго файла стилей
                 additionalDist: 'js/',                            // директория для сохранения дополнительных файлов стилей
                 patterns: [
-
+                    'module'
                 ],
             },
             images: {
@@ -69,29 +73,22 @@ module.exports = {
         },
     },
 
-    /* Общие плагины */
-    // Генерация sourceMap
+    /* Настройка плагинов */
+    // Генерация карты кода
     sourceMap: {
-        createSourceMapProd: true,
-        createSourceMapDev: true,
-        // Директория сохранения карт
-        // null — сохранять информацию прямо в файле
-        saveDir: './.source_maps',
-        options: {
-            largeFile: true
-        }
+        createSourceMapProd: true,          // Генерация карты в режиме прода
+        createSourceMapDev: true,           // Генерация карты в режиме дева
+        saveDir: '.source_maps',          // Куда сохранять файлы карт, null — сохранять информацию прямо в файле
     },
-
-    // Отслеживание изменений
+    // Обработка скриптов
     scripts: {
         plugins: {
             uglify: false,                               // Минификация
             babel: false,                                // Поддержка ES6
         }
     },
-
+    // Обработка изображений
     images: {
-        // Нужно ли оптимизировать изображения
         compression: {
             jpg: {
                 enable: true,
@@ -109,24 +106,5 @@ module.exports = {
                 enable: true
             },
         },
-    },
-
-    clear: {
-        build: [
-            './.source_maps',
-            './css',
-            './js'
-        ],
-        cache: [
-            './.gulp/cache',
-        ],
-        spritesRetina: [
-            /*'./img/sprites-retina/',*/
-            /*'./styles/sprites-retina/',*/
-        ],
-        spritesNotRetina: [
-            './img/sprites/',
-            './styles/sprites/',
-        ]
-    },
+    }
 };
