@@ -20,54 +20,49 @@ module.exports = {
             pmdir: '.vendor',  //директория в которую складывает файлы ващ менеджер пакетов (bower/yarn)
             styles: {
                 fileExtension: 'css,scss',  //расширения файлов для сборки
-                sourcesDir: 'styles/',  //директоиря исходников стилей
-                vendorDir: 'styles/vendor/',  //вендоры
+                sourcesDir: 'app/Resources/public/styles/',  //директоиря исходников стилей
+                vendorDir: 'app/Resources/public/vendor/',  //вендоры
                 // основной файл/файлы для сборки
                 mainFile: [
-                    'template_styles.scss'
+                    'main.scss'
                 ],
-                dist: 'css/',  //директория для сохранения основного файла стилей
-                distFileName: 'template_styles.css',  //имя собранного основго файла стилей
+                dist: 'web/styles/',  //директория для сохранения основного файла стилей
+                distFileName: 'styles.css',  //имя собранного основго файла стилей
 
-                additionalSourcesDir: 'styles/pages/',  //директория отдельно собираемых (дополнительных) стилей
-                additionalDist: 'css/',  //директория для сохранения дополнительных файлов стилей
+                additionalSourcesDir: 'app/Resources/public/styles/pages/',  //директория отдельно собираемых (дополнительных) стилей
+                additionalDist: 'web/styles/pages/',  //директория для сохранения дополнительных файлов стилей
 
-                patterns: [
-                    'sass-7-1-without-themes',
-                    'sass-help',
-                ],
+                patterns: [],
             },
             scripts: {
                 fileExtension: 'js',  //расширения файлов для сборки
-                sourcesDir: 'scripts/',  //директоиря исходников скриптов
-                vendorDir: 'scripts/vendor/',  //вендоры
+                sourcesDir: 'app/Resources/public/scripts/',  //директоиря исходников скриптов
+                vendorDir: 'app/Resources/public/scripts/vendor/',  //вендоры
                 // основной файл/файлы для сборки
                 mainFile: [
                     'main.js'
                 ],
-                additionalSourcesDir: 'scripts/additionally/',  //директория отдельно собираемых (дополнительных) стилей
-                dist: 'js/',  //директория для сохранения основного файла стилей
+                additionalSourcesDir: 'app/Resources/public/scripts/pages/',  //директория отдельно собираемых (дополнительных) стилей
+                dist: 'web/scripts/',  //директория для сохранения основного файла стилей
                 distFileName: 'scripts.js',  //имя собранного основго файла стилей
-                additionalDist: 'js/',  //директория для сохранения дополнительных файлов стилей
-                patterns: [
-                    'module'
-                ],
+                additionalDist: 'web/scripts/pages/',  //директория для сохранения дополнительных файлов стилей
+                patterns: [],
             },
             images: {
                 fileExtension: 'jpg,jpeg,png,gif,svg',
-                sourcesDir: 'img/',  //Где храниться графика для сборки
-                dist: 'img/',
+                sourcesDir: 'app/Resources/public/images/',  //Где храниться графика для сборки
+                dist: 'web/images/',
             },
             sprites: {
                 notRetina: {
-                    sourcesDir: 'img/.sprites/',
-                    imgDist: 'img/sprites/',
-                    scssDist: 'styles/sprites/',
+                    sourcesDir: 'app/Resources/public/images/.sprites/',
+                    imgDist: 'web/images/sprites/',
+                    scssDist: 'app/Resources/public/styles/sprites/',
                 },
                 retina: {
-                    sourcesDir: 'img/.sprites-retina/',
-                    imgDist: 'img/sprites-retina/',
-                    scssDist: 'styles/sprites-retina/',
+                    sourcesDir: 'app/Resources/public/images/.sprites-retina/',
+                    imgDist: 'web/images/sprites-retina/',
+                    scssDist: 'app/Resources/public/styles/sprites-retina/',
                 },
             }
         },
@@ -83,8 +78,8 @@ module.exports = {
     // Обработка скриптов
     scripts: {
         plugins: {
-            uglify: false,  //Минификация
-            babel: false,  //Поддержка ES6
+            uglify: true,  //Минификация
+            babel: true,  //Поддержка ES6
         }
     },
     // Обработка изображений
