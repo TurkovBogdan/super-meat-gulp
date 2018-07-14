@@ -46,9 +46,9 @@ module.exports = {
             callback(null, file);
         };
 
-        transformStream.on('finish', () => {
-            //console.log('');
-        });
+        /*        transformStream.on('finish', () => {
+                    //console.log('');
+                });*/
 
         return transformStream;
     },
@@ -63,10 +63,6 @@ module.exports = {
     },
 
     createImageTimestamp: function (fileName) {
-        if (!fs.existsSync('.gulp/cache/')) {
-            this.ensureDirectoryExistence('.gulp/cache/');
-        }
-
         var transformStream = new Transform({objectMode: true});
 
         transformStream._transform = function(file, encoding, callback) {
@@ -90,10 +86,10 @@ module.exports = {
             callback(null, file);
         };
 
-/*        transformStream.on('finish', () => {
-            console.log('');
-            console.log(fileTimestamp);
-        });*/
+        /*        transformStream.on('finish', () => {
+                    console.log('');
+                    console.log(fileTimestamp);
+                });*/
 
         return transformStream;
     },

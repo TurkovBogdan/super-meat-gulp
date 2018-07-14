@@ -41,12 +41,13 @@ if (!fs.existsSync('./.gulp/conf.js'))
     process.exit();
 }
 
+if (!fs.existsSync('.gulp/cache/')) {fs.mkdirSync('.gulp/cache/');}
+
 var conf = require('./.gulp/conf.js'),
     func = require('./.gulp/modules/func.js'),
     isDev = (argv.dev === undefined) ? false : true,
     isSourceMap = ((isDev == false && conf.sourceMap.createSourceMapProd) || (isDev == true && conf.sourceMap.createSourceMapDev)) ? true : false,
     watchIsEnable = false;
-
 
 
 //-------------------------------------------------------------------------
