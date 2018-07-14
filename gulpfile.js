@@ -564,9 +564,9 @@ gulp.task('watch', function () {
     watchScriptsAdditional.push(conf.project.structure.scripts.sourcesDir + '**/*.' + scriptsAdditional.ext);
     conf.tasks.additionalJS === true &&
     watch(watchScriptsAdditional, watchConfig, batch({timeout: 600},function (events, cb) {
-        gulp.start('scripts:additional');
+        gulp.start('scripts:additional',cb);
     }));
-
+ 
     // watch для изображений
     var watchImages = [];
     watchImages.push(conf.project.structure.images.sourcesDir + '**/*.' + images.ext);
@@ -576,7 +576,7 @@ gulp.task('watch', function () {
     watchImages.push('!' + conf.project.structure.sprites.retina.imgDist + '**/*');
     conf.tasks.images === true &&
     watch(watchImages, watchConfig, batch({timeout: 1200}, function (events, cb) {
-        gulp.start('images:optimization');
+        gulp.start('images:optimization',cb);
     }));
 
     // watch для спрайтов без ретины
@@ -584,7 +584,7 @@ gulp.task('watch', function () {
     watchSprites.push(conf.project.structure.sprites.notRetina.sourcesDir + '**/*');
     conf.tasks.sprites === true &&
     watch(watchSprites, watchConfig, batch({timeout: 500}, function (events, cb) {
-        gulp.start('sprites:not-retina');
+        gulp.start('sprites:not-retina',cb);
     }));
 
     //watch для спрайтов с ретиной
@@ -594,7 +594,7 @@ gulp.task('watch', function () {
     watchSpritesRetina.push('!' + conf.project.structure.sprites.retina.sourcesDir + '**/x2/*');
     conf.tasks.spritesRetina === true &&
     watch(watchSpritesRetina, watchConfig, batch({timeout: 500}, function (events, cb) {
-        gulp.start('sprites:retina')
+        gulp.start('sprites:retina',cb)
     }));
 });
 
