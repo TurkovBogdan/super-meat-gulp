@@ -163,6 +163,7 @@ npm install
 ```
 git clone https://github.com/TurkovBogdan/super-meat-gulp.git . && rm -rf .git && rm .gitignore && npm install
 ```
+5. Перейдите в директорию .gulp/ и переименуйте подходящий вам шаблон файла конфигурации в conf.js
 
 ## TODO
 — сборка стилей, добавить url rebase<br>
@@ -184,7 +185,7 @@ wget https://sources.voidlinux.eu/GraphicsMagick-1.3.30/GraphicsMagick-1.3.30.ta
 tar zxvf GraphicsMagick-1.3.30.tar.gz
 
 # Компилим и устанавливаем
-cd GraphicsMagick-1.3.9
+cd GraphicsMagick-1.3.30
 ./configure --enable-shared
 make
 make install
