@@ -196,7 +196,7 @@ gulp.task('sprites:retina-resize', ['sprites:retina-preparation'], folders(sprit
         .pipe(gulp.dest(spritesRetina.src + folder + '/x1/'));
 }));
 
-gulp.task('sprites:retina', ['sprites:retina-resize'], folders(spritesRetina.src, function (folder) {
+gulp.task('sprites:retina-builder', ['sprites:retina-resize'], folders(spritesRetina.src, function (folder) {
     if (imagePreparationLog.length > 0) {
         console.log(color('\nВнимание! Изображения по пути:', 'YELLOW'));
         for (var i = 0; i < imagePreparationLog.length; i++) {
@@ -234,7 +234,7 @@ gulp.task('sprites:retina', ['sprites:retina-resize'], folders(spritesRetina.src
     return merge(imgStream, cssStream);
 }));
 
-gulp.task('sprites:retina-optimization', ['sprites:retina'], function () {
+gulp.task('sprites:retina', ['sprites:retina-builder'], function () {
     if (watchIsEnable) {
         gulp.start('styles:main');
         gulp.start('styles:additional');
@@ -265,7 +265,7 @@ gulp.task('clear:sprites-not-retina', function () {
     ]);
 });
 
-gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(spritesNotRetina.src, function (folder) {
+gulp.task('sprites:not-retina-builder', ['clear:sprites-not-retina'], folders(spritesNotRetina.src, function (folder) {
     var salt = md5(Date());
     var spriteData = gulp.src(path.join(spritesNotRetina.src, folder, spritesNotRetina.ext))
         .pipe(spritesmith({
@@ -289,7 +289,7 @@ gulp.task('sprites:not-retina', ['clear:sprites-not-retina'], folders(spritesNot
     return merge(imgStream, cssStream);
 }));
 
-gulp.task('sprites:not-retina-optimization', ['sprites:not-retina'], function () {
+gulp.task('sprites:not-retina', ['sprites:not-retina-builder'], function () {
     if (watchIsEnable) {
         gulp.start('styles:main');
         gulp.start('styles:additional');
@@ -497,8 +497,8 @@ if(conf.tasks.mainJS || conf.tasks.additionalJS)
     tasks[0].push('scripts:clear');
 conf.tasks.mainJS === true && tasks[2].push('scripts:main');
 conf.tasks.additionalJS === true && tasks[2].push('scripts:additional');
-conf.tasks.sprites === true && tasks[1].push('sprites:not-retina-optimization');
-conf.tasks.spritesRetina === true && tasks[1].push('sprites:retina-optimization');
+conf.tasks.sprites === true && tasks[1].push('sprites:not-retina');
+conf.tasks.spritesRetina === true && tasks[1].push('sprites:retina');
 conf.tasks.images === true && tasks[1].push('images:optimization');
 tasks[0].length !== 0 && tasksSync.push(tasks[0]);
 tasks[1].length !== 0 && tasksSync.push(tasks[1]);
@@ -583,7 +583,7 @@ gulp.task('watch', function () {
     watchSprites.push(conf.project.structure.sprites.notRetina.sourcesDir + '**/*');
     conf.tasks.sprites === true &&
     watch(watchSprites, watchConfig, batch({timeout: 500}, function (events, cb) {
-        gulp.start('sprites:not-retina-optimization');
+        gulp.start('sprites:not-retina');
     }));
 
     //watch для спрайтов с ретиной
@@ -593,7 +593,7 @@ gulp.task('watch', function () {
     watchSpritesRetina.push('!' + conf.project.structure.sprites.retina.sourcesDir + '**/x2/*');
     conf.tasks.spritesRetina === true &&
     watch(watchSpritesRetina, watchConfig, batch({timeout: 500}, function (events, cb) {
-        gulp.start('sprites:retina-optimization')
+        gulp.start('sprites:retina')
     }));
 });
 
