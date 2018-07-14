@@ -185,7 +185,7 @@ wget https://sources.voidlinux.eu/GraphicsMagick-1.3.30/GraphicsMagick-1.3.30.ta
 tar zxvf GraphicsMagick-1.3.30.tar.gz
 
 # Компилим и устанавливаем
-cd GraphicsMagick-1.3.9
+cd GraphicsMagick-1.3.30
 ./configure --enable-shared
 make
 make install
