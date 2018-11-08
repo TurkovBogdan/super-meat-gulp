@@ -8,6 +8,9 @@
 [FAQ](#faq)<br>
 [История версий](#История-версий)
 
+## TODO
+Про работу с bower
+
 ## Функционал
 **Настройки**<br>
 Все настройки выведены в [отельный файл](https://github.com/TurkovBogdan/super-meat-gulp/blob/master/.gulp/conf-bitrix.js). Можно настроить:<br>
